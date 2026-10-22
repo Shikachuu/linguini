@@ -10,15 +10,22 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.gzip import GZipMiddleware
-from sqlalchemy import text
+from pydantic_ai.models import Model
+from sqlalchemy import text, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
 from linguini.auth.oidc import JwksCache
 from linguini.auth.router import router as auth_router
 from linguini.auth.sessions import CsrfMiddleware
+from linguini.chat.agent import build_agent, build_model, build_summarizer
+from linguini.chat.router import ThreadLocks
+from linguini.chat.router import router as chat_router
 from linguini.config import Settings, get_settings
-from linguini.db import Database, ReadSession, run_migrations
+from linguini.db import Database, ReadSession, run_migrations, utcnow
 from linguini.households.router import router as households_router
 from linguini.inventory.router import router as inventory_router
+from linguini.models import Run, RunStatus
 from linguini.web import mount_spa
 
 
@@ -28,6 +35,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     settings: Settings = app.state.settings
     await asyncio.to_thread(run_migrations, settings.database_path)
     app.state.db = Database(settings.database_path)
+    await app.state.db.run_write(fail_interrupted_runs)
     app.state.http = httpx.AsyncClient()
     app.state.jwks = JwksCache(app.state.http)
     try:
@@ -37,8 +45,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         await app.state.db.dispose()
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
-    """Build the application; tests pass their own settings.
+async def fail_interrupted_runs(session: AsyncSession) -> None:
+    """Runs still marked running at startup were cut off by a restart."""
+    await session.execute(
+        update(Run).where(col(Run.status) == RunStatus.RUNNING).values(status=RunStatus.FAILED, finished_at=utcnow())
+    )
+
+
+def create_app(
+    settings: Settings | None = None, model: Model | None = None, summary_model: Model | None = None
+) -> FastAPI:
+    """Build the application; tests pass their own settings and models.
 
     Returns:
         The configured FastAPI app.
@@ -46,6 +63,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(title="Linguini", lifespan=lifespan, docs_url="/docs", openapi_url="/api/openapi.json")
     app.state.settings = settings
+    chat_model = model or build_model(settings)
+    app.state.agent = build_agent(chat_model)
+    app.state.summarizer = build_summarizer(summary_model or _summary_model(settings, chat_model))
+    app.state.thread_locks = ThreadLocks()
     app.add_middleware(GZipMiddleware, minimum_size=1024)
     app.add_middleware(CsrfMiddleware, settings=settings)
 
@@ -64,8 +85,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth_router)
     app.include_router(households_router)
     app.include_router(inventory_router)
+    app.include_router(chat_router)
     mount_spa(app, settings.static_dir)
     return app
+
+
+def _summary_model(settings: Settings, default: Model) -> Model:
+    if settings.summary_model is None or settings.summary_model == settings.model:
+        return default
+    return build_model(settings.model_copy(update={"model": settings.summary_model}))
 
 
 def current_settings(request: Request) -> Settings:

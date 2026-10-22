@@ -84,13 +84,19 @@ class Database:
         self.write_lock = asyncio.Lock()
         self._background: set[asyncio.Task[None]] = set()
 
-    def write_later(self, work: Callable[[AsyncSession], Awaitable[None]]) -> None:
-        """Run ``work`` in its own write transaction once the lock is free, without blocking the caller."""
-        task = asyncio.create_task(self._run_write(work))
+    def write_later(self, work: Callable[[AsyncSession], Awaitable[None]]) -> asyncio.Task[None]:
+        """Run ``work`` in its own write transaction once the lock is free, without blocking the caller.
+
+        Returns:
+            The scheduled task, so callers can chain a done callback.
+        """
+        task = asyncio.create_task(self.run_write(work))
         self._background.add(task)
         task.add_done_callback(self._background.discard)
+        return task
 
-    async def _run_write(self, work: Callable[[AsyncSession], Awaitable[None]]) -> None:
+    async def run_write(self, work: Callable[[AsyncSession], Awaitable[None]]) -> None:
+        """Run ``work`` in its own committed write transaction; failures are logged, not raised."""
         try:
             async with self.write_lock, self.write_session() as session:
                 await work(session)

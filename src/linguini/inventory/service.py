@@ -293,12 +293,17 @@ async def undo_event(
 
 
 async def undo_last_turn(
-    session: AsyncSession, household_id: uuid.UUID, thread_id: uuid.UUID, actor: Actor
+    session: AsyncSession,
+    household_id: uuid.UUID,
+    thread_id: uuid.UUID,
+    actor: Actor,
+    *,
+    exclude_run_id: uuid.UUID | None = None,
 ) -> list[InventoryEvent]:
     """Revert every still-active event of the newest run in a thread that still has any.
 
     Calling it again walks back to the run before that, so repeated "undo" requests keep
-    unwinding the thread's history.
+    unwinding the thread's history. ``exclude_run_id`` skips the run that is asking.
 
     Returns:
         The compensating events, newest original first.
@@ -308,11 +313,13 @@ async def undo_last_turn(
         InventoryEvent.cause != EventCause.UNDO,
         col(InventoryEvent.undone_by_event_id).is_(None),
     )
+    candidates = select(InventoryEvent.run_id).where(
+        *active, InventoryEvent.thread_id == thread_id, col(InventoryEvent.run_id).is_not(None)
+    )
+    if exclude_run_id is not None:
+        candidates = candidates.where(InventoryEvent.run_id != exclude_run_id)
     latest = await session.execute(
-        select(InventoryEvent.run_id)
-        .where(*active, InventoryEvent.thread_id == thread_id, col(InventoryEvent.run_id).is_not(None))
-        .order_by(col(InventoryEvent.created_at).desc(), col(InventoryEvent.id).desc())
-        .limit(1)
+        candidates.order_by(col(InventoryEvent.created_at).desc(), col(InventoryEvent.id).desc()).limit(1)
     )
     run_id = latest.scalar_one_or_none()
     if run_id is None:
@@ -387,7 +394,7 @@ def _touch(item: InventoryItem, change: ItemChange, *, purchased: bool = False) 
     if change.kifli_product_id:
         item.kifli_product_id = change.kifli_product_id
     if change.notes is not None:
-        item.notes = change.notes
+        item.notes = " ".join(change.notes.split())[:500]
 
 
 def _event(item: InventoryItem, before: float, after: float, actor: Actor) -> InventoryEvent:

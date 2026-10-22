@@ -77,6 +77,7 @@ convention = "google"
 "tests/**" = ["D", "DOC", "ANN"]
 "src/linguini/migrations/versions/**" = ["D", "DOC"]
 "src/linguini/**/router.py" = ["docstring-missing-returns", "fast-api-unused-path-parameter"]
+"src/linguini/chat/tools.py" = ["undocumented-param"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
