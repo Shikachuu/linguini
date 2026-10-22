@@ -1,3 +1,4 @@
+import os
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,8 @@ from pydantic import SecretStr
 from linguini.app import create_app
 from linguini.auth import apple, google
 from linguini.config import Settings
+
+os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 
 
 @pytest.fixture

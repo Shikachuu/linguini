@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from pydantic_ai import Agent, ModelSettings, RunContext, UsageLimits
+from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.profiles.openai import OpenAIModelProfile
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.toolsets import AbstractToolset
 
 from linguini.chat.deps import AgentDeps
 from linguini.chat.tools import inventory_toolset, recipe_toolset
@@ -40,6 +42,13 @@ Recipes: when the user says they cooked a dish, call list_recipes first; if it i
 cook_recipe with the portions made, otherwise work out the ingredients from this conversation and \
 call consume_items. When the user wants to keep a recipe you proposed, save it with save_recipe, \
 including its allergens. Saved recipes are the household's; invent freely, but mark substitutions.
+
+Kifli (online grocery, tools prefixed kifli_): search in Hungarian, since the catalogue is \
+Hungarian. You may add to and remove from the cart; you cannot place orders, the user checks out \
+on kifli.hu. Use the product composition tool to check allergens before recommending a product. \
+To import a delivered order, read it with the order tools and call add_items with every line \
+mapped to item name, quantity and unit, passing kifli_order_id so it is imported only once; set \
+purchased_at to the delivery date. Report what you could not map.
 
 Freshness: expires_at is authoritative when set. Otherwise use last_purchased_at and common sense \
 (fresh meat and fish 2-3 days, poultry 2 days, dairy a week past opening, leafy vegetables a week, \
@@ -100,10 +109,21 @@ def build_agent(model: Model) -> Agent[AgentDeps, str]:
             )
         if d.kifli_broken:
             lines.append("Kifli is disconnected; ask the user to reconnect it in settings before using Kifli tools.")
-        elif not d.kifli_connected:
+        elif d.kifli is None and d.kifli_server is None:
             lines.append("Kifli is not connected to this household, so no shop tools are available.")
         lines.extend(d.extra_notes)
         return "\n".join(lines)
+
+    @agent.toolset(per_run_step=False, id="kifli-mcp")
+    def kifli_tools(ctx: RunContext[AgentDeps]) -> AbstractToolset[AgentDeps] | None:
+        d = ctx.deps
+        if d.kifli_server is not None:
+            return MCPToolset(d.kifli_server, id="kifli", tool_error_behavior="failed").prefixed("kifli")
+        if d.kifli is None:
+            return None
+        return MCPToolset(
+            d.kifli.mcp_url, id="kifli", auth=d.kifli.access_token, tool_error_behavior="failed"
+        ).prefixed("kifli")
 
     return agent
 

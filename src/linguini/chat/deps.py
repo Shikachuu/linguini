@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from linguini.db import Database
+from linguini.kifli.oauth import LiveConnection
 
 
 @dataclass(slots=True)
@@ -24,7 +25,8 @@ class AgentDeps:
     now: datetime
     locale: str
     inventory_snapshot: str = ""
-    kifli_connected: bool = False
+    kifli: LiveConnection | None = None
     kifli_broken: bool = False
+    kifli_server: object | None = None
     extra_notes: list[str] = field(default_factory=list)
     undid_previous_turn: bool = False

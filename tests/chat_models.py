@@ -98,6 +98,12 @@ class Scripted:
             yield call("list_recipes", {"query": prompt[5:]}, "call-list")
         elif prompt.startswith("recipe "):
             yield call("get_recipe", {"recipe_id": prompt[7:]}, "call-get")
+        elif prompt.startswith("shop "):
+            tools = {t.name for t in info.function_tools}
+            if "kifli_search_products" in tools:
+                yield call("kifli_search_products", {"query": prompt[5:]}, "call-shop")
+            else:
+                yield f"shop tools: {sorted(t for t in tools if t.startswith('kifli'))} not connected"
         elif prompt == "wait":
             self.gate = asyncio.Event()
             yield "waiting..."

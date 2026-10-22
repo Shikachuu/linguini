@@ -26,10 +26,12 @@ from linguini.auth.sessions import CurrentAuth
 from linguini.chat import history
 from linguini.chat.agent import RUN_TIMEOUT, USAGE_LIMITS
 from linguini.chat.deps import AgentDeps
+from linguini.config import Settings
 from linguini.db import Database, ReadSession, WriteSession, get_database, utcnow
 from linguini.households import service as households
 from linguini.households.router import MemberHousehold
 from linguini.inventory import service as inventory
+from linguini.kifli import oauth as kifli
 from linguini.models import InventoryEvent, Run, RunStatus, Thread
 
 router = APIRouter(prefix="/api/households/{household_id}", tags=["chat"])
@@ -209,6 +211,7 @@ async def chat(
             model_history = await history.model_history(session, thread)
             members = [u.display_name for u, _ in await households.members(session, household.id)]
             items = await inventory.list_items(session, household.id)
+        live = await _shop_connection(db, request, settings, household.id)
         run = Run(thread_id=thread_id, user_id=auth.user.id)
         async with db.write_lock, db.write_session() as session:
             session.add(run)
@@ -226,6 +229,12 @@ async def chat(
             now=now,
             locale=settings.locale,
             inventory_snapshot=history.inventory_snapshot(items, now),
+            kifli=live if isinstance(live, kifli.LiveConnection) else None,
+            kifli_broken=live is kifli.ConnectionState.BROKEN,
+            kifli_server=getattr(request.app.state, "kifli_server", None),
+            extra_notes=["Kifli is temporarily unreachable; shop tools are unavailable for this message."]
+            if live is kifli.ConnectionState.UNAVAILABLE
+            else [],
         )
         adapter = VercelAIAdapter(agent, run_input, accept=request.headers.get("accept"))
         bookkeeper = _RunBookkeeper(db, locks, run.id, thread_id, _prompt_text(prompt), thread.title == UNTITLED)
@@ -242,6 +251,16 @@ async def chat(
         locks.release(thread_id)
         raise
     return response
+
+
+async def _shop_connection(
+    db: Database, request: Request, settings: Settings, household_id: uuid.UUID
+) -> kifli.LiveConnection | kifli.ConnectionState:
+    try:
+        return await kifli.live_connection(db, request.app.state.http, settings, household_id)
+    except Exception:
+        log.exception("resolving the shop connection for household %s failed", household_id)
+        return kifli.ConnectionState.UNAVAILABLE
 
 
 class _RunBookkeeper:

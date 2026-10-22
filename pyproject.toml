@@ -26,6 +26,7 @@ dev = [
     "ty",
     "dirty-equals>=0.9",
     "respx>=0.22",
+    "fastmcp>=4.1.3",
 ]
 
 [build-system]
