@@ -18,6 +18,7 @@ from linguini.auth.sessions import CsrfMiddleware
 from linguini.config import Settings, get_settings
 from linguini.db import Database, ReadSession, run_migrations
 from linguini.households.router import router as households_router
+from linguini.inventory.router import router as inventory_router
 from linguini.web import mount_spa
 
 
@@ -62,6 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(households_router)
+    app.include_router(inventory_router)
     mount_spa(app, settings.static_dir)
     return app
 

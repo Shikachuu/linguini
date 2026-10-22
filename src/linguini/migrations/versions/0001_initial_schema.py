@@ -2,7 +2,7 @@
 
 Revision ID: 0001
 Revises:
-Create Date: 2026-10-22 15:12:50.252185
+Create Date: 2026-10-22 15:49:44.449962
 """
 
 from __future__ import annotations
@@ -76,7 +76,11 @@ def upgrade() -> None:
         sa.Column("nonce", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("code_verifier", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("binding_hash", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("intent", sa.Enum("LOGIN", "LINK", "KIFLI", name="oauthintent"), nullable=False),
+        sa.Column(
+            "intent",
+            sa.Enum("login", "link", "kifli", name="oauthintent", native_enum=False, length=20),
+            nullable=False,
+        ),
         sa.Column("invite_code", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("household_id", sa.Uuid(), nullable=True),
         sa.Column("user_id", sa.Uuid(), nullable=True),
@@ -97,7 +101,9 @@ def upgrade() -> None:
         "identities",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column("provider", sa.Enum("APPLE", "GOOGLE", name="provider"), nullable=False),
+        sa.Column(
+            "provider", sa.Enum("apple", "google", name="provider", native_enum=False, length=20), nullable=False
+        ),
         sa.Column("subject", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("email", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("email_verified", sa.Boolean(), nullable=False),
@@ -118,7 +124,11 @@ def upgrade() -> None:
         sa.Column("household_id", sa.Uuid(), nullable=False),
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("name_normalized", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("dimension", sa.Enum("MASS", "VOLUME", "COUNT", name="dimension"), nullable=False),
+        sa.Column(
+            "dimension",
+            sa.Enum("mass", "volume", "count", name="dimension", native_enum=False, length=20),
+            nullable=False,
+        ),
         sa.Column("quantity_base", sa.Float(), nullable=False),
         sa.Column("display_unit", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("kifli_product_id", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -204,7 +214,9 @@ def upgrade() -> None:
         sa.Column("ingredients", sa.JSON(), nullable=True),
         sa.Column("steps", sa.JSON(), nullable=True),
         sa.Column("allergens", sa.JSON(), nullable=True),
-        sa.Column("source", sa.Enum("CHAT", "MANUAL", name="recipesource"), nullable=False),
+        sa.Column(
+            "source", sa.Enum("chat", "manual", name="recipesource", native_enum=False, length=20), nullable=False
+        ),
         sa.Column("thread_id", sa.Uuid(), nullable=True),
         sa.Column("created_at", linguini.db.UTCDateTime(), nullable=False),
         sa.Column("updated_at", linguini.db.UTCDateTime(), nullable=False),
@@ -219,7 +231,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("token_hash", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column("client_kind", sa.Enum("WEB", "MOBILE", name="clientkind"), nullable=False),
+        sa.Column(
+            "client_kind", sa.Enum("web", "mobile", name="clientkind", native_enum=False, length=20), nullable=False
+        ),
         sa.Column("created_at", linguini.db.UTCDateTime(), nullable=False),
         sa.Column("last_seen_at", linguini.db.UTCDateTime(), nullable=False),
         sa.Column("expires_at", linguini.db.UTCDateTime(), nullable=False),
@@ -253,7 +267,11 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("thread_id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column("status", sa.Enum("RUNNING", "COMPLETED", "CANCELLED", "FAILED", name="runstatus"), nullable=False),
+        sa.Column(
+            "status",
+            sa.Enum("running", "completed", "cancelled", "failed", name="runstatus", native_enum=False, length=20),
+            nullable=False,
+        ),
         sa.Column("messages", sa.JSON(), nullable=True),
         sa.Column("usage", sa.JSON(), nullable=True),
         sa.Column("created_at", linguini.db.UTCDateTime(), nullable=False),
@@ -270,10 +288,20 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("household_id", sa.Uuid(), nullable=False),
         sa.Column("item_id", sa.Uuid(), nullable=False),
+        sa.Column(
+            "dimension",
+            sa.Enum("mass", "volume", "count", name="dimension", native_enum=False, length=20),
+            nullable=False,
+        ),
+        sa.Column("unit", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("delta_base", sa.Float(), nullable=False),
         sa.Column("quantity_before", sa.Float(), nullable=False),
         sa.Column("quantity_after", sa.Float(), nullable=False),
-        sa.Column("cause", sa.Enum("MANUAL", "CHAT", "COOK", "KIFLI_ORDER", "UNDO", name="eventcause"), nullable=False),
+        sa.Column(
+            "cause",
+            sa.Enum("manual", "chat", "cook", "kifli_order", "undo", name="eventcause", native_enum=False, length=20),
+            nullable=False,
+        ),
         sa.Column("thread_id", sa.Uuid(), nullable=True),
         sa.Column("run_id", sa.Uuid(), nullable=True),
         sa.Column("tool_call_id", sqlmodel.sql.sqltypes.AutoString(), nullable=True),

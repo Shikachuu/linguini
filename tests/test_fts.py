@@ -10,7 +10,7 @@ def test_fts_triggers_follow_insert_update_delete(client: TestClient, settings: 
     sql(
         db,
         "INSERT INTO inventory_items(id, household_id, name, name_normalized, dimension, quantity_base, display_unit,"
-        " created_at, updated_at) VALUES (x'22', x'11', 'tejföl', 'tejfol', 'MASS', 0, 'g',"
+        " created_at, updated_at) VALUES (x'22', x'11', 'tejföl', 'tejfol', 'mass', 0, 'g',"
         " '2026-01-01 00:00:00', '2026-01-01 00:00:00')",
     )
     match = "SELECT rowid FROM inventory_items_fts WHERE inventory_items_fts MATCH ?"
