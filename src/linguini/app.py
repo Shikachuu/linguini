@@ -11,10 +11,11 @@ import httpx
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic_ai.models import Model
-from sqlalchemy import text, update
+from sqlalchemy import delete, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
+from linguini import observability
 from linguini.auth.oidc import JwksCache
 from linguini.auth.router import router as auth_router
 from linguini.auth.sessions import CsrfMiddleware
@@ -26,7 +27,7 @@ from linguini.db import Database, ReadSession, run_migrations, utcnow
 from linguini.households.router import router as households_router
 from linguini.inventory.router import router as inventory_router
 from linguini.kifli.router import router as kifli_router
-from linguini.models import Run, RunStatus
+from linguini.models import OAuthState, Run, RunStatus, Session
 from linguini.recipes.router import router as recipes_router
 from linguini.web import mount_spa
 
@@ -38,6 +39,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await asyncio.to_thread(run_migrations, settings.database_path)
     app.state.db = Database(settings.database_path)
     await app.state.db.run_write(fail_interrupted_runs)
+    await app.state.db.run_write(sweep_expired)
     app.state.http = httpx.AsyncClient()
     app.state.jwks = JwksCache(app.state.http)
     try:
@@ -45,6 +47,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     finally:
         await app.state.http.aclose()
         await app.state.db.dispose()
+        if app.state.tracer_provider is not None:
+            await asyncio.to_thread(app.state.tracer_provider.shutdown)
 
 
 async def fail_interrupted_runs(session: AsyncSession) -> None:
@@ -52,6 +56,13 @@ async def fail_interrupted_runs(session: AsyncSession) -> None:
     await session.execute(
         update(Run).where(col(Run.status) == RunStatus.RUNNING).values(status=RunStatus.FAILED, finished_at=utcnow())
     )
+
+
+async def sweep_expired(session: AsyncSession) -> None:
+    """Drop sessions and login states that can no longer be used."""
+    now = utcnow()
+    await session.execute(delete(Session).where(col(Session.expires_at) < now))
+    await session.execute(delete(OAuthState).where(col(OAuthState.expires_at) < now))
 
 
 def create_app(
@@ -66,8 +77,11 @@ def create_app(
     app = FastAPI(title="Linguini", lifespan=lifespan, docs_url="/docs", openapi_url="/api/openapi.json")
     app.state.settings = settings
     chat_model = model or build_model(settings)
-    app.state.agent = build_agent(chat_model)
-    app.state.summarizer = build_summarizer(summary_model or _summary_model(settings, chat_model))
+    tracing = observability.configure(settings)
+    app.state.tracer_provider = tracing[0] if tracing else None
+    capabilities = [tracing[1]] if tracing else []
+    app.state.agent = build_agent(chat_model, capabilities)
+    app.state.summarizer = build_summarizer(summary_model or _summary_model(settings, chat_model), capabilities)
     app.state.thread_locks = ThreadLocks()
     app.add_middleware(GZipMiddleware, minimum_size=1024)
     app.add_middleware(CsrfMiddleware, settings=settings)

@@ -16,6 +16,8 @@ dependencies = [
     "alembic>=1.16",
     "httpx>=0.28",
     "pyjwt[crypto]>=2.10",
+    "opentelemetry-sdk>=1.30",
+    "opentelemetry-exporter-otlp-proto-http>=1.30",
 ]
 
 [dependency-groups]

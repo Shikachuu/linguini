@@ -111,6 +111,7 @@ class Identity(SQLModel, table=True):
     email_verified: bool = False
     is_private_email: bool = False
     apple_refresh_token_enc: str | None = None
+    apple_client_id: str | None = None
     created_at: datetime = Field(default_factory=utcnow, sa_type=UTCDateTime)
     last_login_at: datetime = Field(default_factory=utcnow, sa_type=UTCDateTime)
 

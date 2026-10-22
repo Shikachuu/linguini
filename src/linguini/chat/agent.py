@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic_ai import Agent, ModelSettings, RunContext, UsageLimits
+from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
@@ -78,11 +81,11 @@ def build_model(settings: Settings) -> Model:
     return OpenAIChatModel(settings.model, provider=provider, profile=profile)
 
 
-def build_agent(model: Model) -> Agent[AgentDeps, str]:
+def build_agent(model: Model, capabilities: Sequence[AbstractCapability[AgentDeps]] = ()) -> Agent[AgentDeps, str]:
     """Create the household agent bound to ``model``.
 
     Returns:
-        The agent, with the inventory toolset attached.
+        The agent, with the inventory and recipe toolsets attached.
     """
     agent: Agent[AgentDeps, str] = Agent(
         model,
@@ -92,6 +95,7 @@ def build_agent(model: Model) -> Agent[AgentDeps, str]:
         retries=2,
         model_settings=MODEL_SETTINGS,
         name="linguini",
+        capabilities=list(capabilities),
     )
 
     @agent.instructions
@@ -136,10 +140,10 @@ If an earlier summary is given, merge it.
 """
 
 
-def build_summarizer(model: Model) -> Agent[None, str]:
+def build_summarizer(model: Model, capabilities: Sequence[AbstractCapability[None]] = ()) -> Agent[None, str]:
     """Create the agent that condenses old thread history.
 
     Returns:
         A plain text agent.
     """
-    return Agent(model, instructions=SUMMARY_INSTRUCTIONS, name="linguini-summarizer")
+    return Agent(model, instructions=SUMMARY_INSTRUCTIONS, name="linguini-summarizer", capabilities=list(capabilities))

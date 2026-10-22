@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import col, select
 
 from linguini.db import utcnow
 from linguini.households import service as households
@@ -42,6 +42,7 @@ async def sign_in(
     invite_code: str | None = None,
     link_to: uuid.UUID | None = None,
     refresh_token_enc: str | None = None,
+    apple_client_id: str | None = None,
 ) -> User:
     """Resolve the identity to a user, creating or linking as the rules allow.
 
@@ -60,7 +61,7 @@ async def sign_in(
         if identity is not None and identity.user_id != link_to:
             raise HTTPException(status.HTTP_409_CONFLICT, "That account is already linked to another user")
         if identity is None:
-            identity = _new_identity(link_to, provider, subject, claims, refresh_token_enc)
+            identity = _new_identity(link_to, provider, subject, claims, refresh_token_enc, apple_client_id)
             session.add(identity)
         user = await session.get(User, link_to)
         if user is None or user.deleted_at is not None:
@@ -70,12 +71,13 @@ async def sign_in(
         identity.email = email or identity.email
         if refresh_token_enc:
             identity.apple_refresh_token_enc = refresh_token_enc
+            identity.apple_client_id = apple_client_id
         user = await session.get(User, identity.user_id)
         if user is None or user.deleted_at is not None:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Account is deleted")
     else:
         user = await _create_user(session, claims, display_name, invite_code)
-        session.add(_new_identity(user.id, provider, subject, claims, refresh_token_enc))
+        session.add(_new_identity(user.id, provider, subject, claims, refresh_token_enc, apple_client_id))
 
     if user is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account not found")
@@ -88,7 +90,8 @@ async def sign_in(
 async def _create_user(
     session: AsyncSession, claims: dict[str, Any], display_name: str | None, invite_code: str | None
 ) -> User:
-    count = (await session.execute(select(func.count()).select_from(User))).scalar_one()
+    active = select(func.count()).select_from(User).where(col(User.deleted_at).is_(None))
+    count = (await session.execute(active)).scalar_one()
     if count > 0 and (invite_code is None or await households.peek_invite(session, invite_code) is None):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "invite_required")
     user = User(display_name=display_name_from(claims, display_name))
@@ -98,9 +101,15 @@ async def _create_user(
 
 
 def _new_identity(
-    user_id: uuid.UUID, provider: Provider, subject: str, claims: dict[str, Any], refresh_token_enc: str | None
+    user_id: uuid.UUID,
+    provider: Provider,
+    subject: str,
+    claims: dict[str, Any],
+    refresh_token_enc: str | None,
+    apple_client_id: str | None,
 ) -> Identity:
     return Identity(
+        apple_client_id=apple_client_id,
         user_id=user_id,
         provider=provider,
         subject=subject,

@@ -86,8 +86,11 @@ async def exchange(
 
 
 async def revoke(client: httpx.AsyncClient, settings: Settings, *, refresh_token: str, client_id: str) -> None:
-    """Revoke a refresh token so Apple forgets the authorization."""
-    await client.post(
+    """Revoke a refresh token so Apple forgets the authorization.
+
+    ``client_id`` must be the one the token was issued to (Services ID on web, bundle id on iOS).
+    """
+    response = await client.post(
         REVOKE_URL,
         data={
             "client_id": client_id,
@@ -97,6 +100,7 @@ async def revoke(client: httpx.AsyncClient, settings: Settings, *, refresh_token
         },
         timeout=15,
     )
+    response.raise_for_status()
 
 
 def audiences(settings: Settings) -> list[str]:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Annotated, Any
@@ -15,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from linguini.auth import accounts, apple, google
-from linguini.auth.crypto import encrypt
+from linguini.auth.crypto import decrypt, encrypt
 from linguini.auth.oidc import (
     JwksCache,
     check_binding,
@@ -36,9 +37,10 @@ from linguini.auth.sessions import (
 from linguini.config import Settings
 from linguini.db import Database, ReadSession, WriteSession, get_database, utcnow
 from linguini.households import service as households
-from linguini.models import ClientKind, Identity, OAuthIntent, OAuthState, Provider, Session, User
+from linguini.models import ClientKind, Identity, Membership, OAuthIntent, OAuthState, Provider, Session, User
 
 router = APIRouter(prefix="/api", tags=["auth"])
+log = logging.getLogger(__name__)
 
 BINDING_COOKIE_SECURE = "__Host-oauth"
 BINDING_COOKIE_PLAIN = "oauth"
@@ -225,7 +227,7 @@ async def apple_finish(
     name, _ = apple.parse_user_field(payload.get("user"))
     refresh = tokens.get("refresh_token")
     enc = encrypt(settings, refresh) if isinstance(refresh, str) else None
-    return await _finish_browser_login(request, db, pending, claims, name, enc)
+    return await _finish_browser_login(request, db, pending, claims, name, enc, client_id)
 
 
 class NonceOut(BaseModel):
@@ -280,9 +282,11 @@ async def native_login(
     claims = await verify(_jwks(request), settings, body.id_token)
     _check_nonce(claims, body.nonce, allow_hashed=prov is Provider.APPLE)
     enc = None
+    apple_client_id = None
     if prov is Provider.APPLE and body.authorization_code:
+        apple_client_id = str(claims["aud"])
         tokens = await apple.exchange(
-            _http(request), settings, code=body.authorization_code, client_id=str(claims["aud"]), redirect_uri=None
+            _http(request), settings, code=body.authorization_code, client_id=apple_client_id, redirect_uri=None
         )
         refresh = tokens.get("refresh_token")
         enc = encrypt(settings, refresh) if isinstance(refresh, str) else None
@@ -290,7 +294,13 @@ async def native_login(
     async with db.write_lock, db.write_session() as session:
         await consume_state(session, body.nonce, NATIVE_PROVIDER, OAuthIntent.LOGIN)
         user = await accounts.sign_in(
-            session, provider=prov, claims=claims, display_name=name, invite_code=body.invite, refresh_token_enc=enc
+            session,
+            provider=prov,
+            claims=claims,
+            display_name=name,
+            invite_code=body.invite,
+            refresh_token_enc=enc,
+            apple_client_id=apple_client_id,
         )
         row, token = await create_session(
             session, settings, user.id, ClientKind.MOBILE, request.headers.get("user-agent")
@@ -344,6 +354,39 @@ async def me(auth: CurrentAuth, session: ReadSession) -> MeOut:
         identities=[IdentityOut(provider=i.provider, email=i.email) for i in idents],
         households=[HouseholdRef(id=h.id, name=h.name) for h in hh],
     )
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(auth: CurrentAuth, request: Request, db: Annotated[Database, Depends(get_database)]) -> Response:
+    """Delete the account; the user row is kept soft-deleted so history stays attributable."""
+    settings = _settings(request)
+    async with db.read_session() as session:
+        identities = list((await session.execute(select(Identity).where(Identity.user_id == auth.user.id))).scalars())
+    for identity in identities:
+        if identity.provider is Provider.APPLE and identity.apple_refresh_token_enc and settings.apple_enabled:
+            client_id = identity.apple_client_id or settings.apple_services_id or ""
+            try:
+                token = decrypt(settings, identity.apple_refresh_token_enc)
+                await apple.revoke(_http(request), settings, refresh_token=token, client_id=client_id)
+            except Exception:
+                log.exception("revoking the Apple token for user %s failed", auth.user.id)
+    async with db.write_lock, db.write_session() as session:
+        for identity in (await session.execute(select(Identity).where(Identity.user_id == auth.user.id))).scalars():
+            await session.delete(identity)
+        for row in (await session.execute(select(Session).where(Session.user_id == auth.user.id))).scalars():
+            await session.delete(row)
+        for membership in (
+            await session.execute(select(Membership).where(Membership.user_id == auth.user.id))
+        ).scalars():
+            await households.remove_member(session, membership.household_id, auth.user.id)
+        user = await session.get(User, auth.user.id)
+        if user is not None:
+            user.deleted_at = utcnow()
+            user.display_name = "Deleted user"
+        await session.commit()
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    clear_session_cookie(response, settings)
+    return response
 
 
 class NotificationIn(BaseModel):
@@ -419,6 +462,7 @@ async def _finish_browser_login(
     claims: dict[str, Any],
     display_name: str | None,
     refresh_token_enc: str | None,
+    apple_client_id: str | None = None,
 ) -> RedirectResponse:
     settings = _settings(request)
     provider = Provider(peeked.provider)
@@ -433,6 +477,7 @@ async def _finish_browser_login(
             invite_code=None if linking else pending.invite_code,
             link_to=pending.user_id if linking else None,
             refresh_token_enc=refresh_token_enc,
+            apple_client_id=apple_client_id,
         )
         if pending.intent is OAuthIntent.LINK:
             await session.commit()
