@@ -1,0 +1,39 @@
+services:
+  linguini:
+    image: ghcr.io/OWNER/linguini:latest
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Trust X-Forwarded-* from any peer: safe only because the port is bound to loopback
+      # and Caddy (profile "caddy") is the only other client on the compose network.
+      FORWARDED_ALLOW_IPS: "*"
+    volumes:
+      - data:/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    read_only: true
+    tmpfs:
+      - /tmp:uid=65532,gid=65532
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    # Opt-in backups: set LITESTREAM_REPLICA_URL (and AWS_* for S3) in .env and uncomment:
+    # entrypoint: ["/usr/local/bin/litestream", "replicate"]
+
+  caddy:
+    image: caddy:2
+    profiles: [caddy]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:

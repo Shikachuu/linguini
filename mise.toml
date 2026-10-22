@@ -1,0 +1,18 @@
+[tools]
+uv = "0.13"
+
+[tasks.check]
+description = "Lint, format check, type check, and run tests"
+run = ["uv run ruff check .", "uv run ruff format --check .", "uv run ty check", "uv run pytest"]
+
+[tasks.fmt]
+description = "Format and autofix lint findings"
+run = ["uv run ruff check --fix .", "uv run ruff format ."]
+
+[tasks.test]
+description = "Run the test suite"
+run = "uv run pytest"
+
+[tasks.dev]
+description = "Run the API with reload on http://127.0.0.1:8000"
+run = "uv run fastapi dev --entrypoint linguini.main:app"

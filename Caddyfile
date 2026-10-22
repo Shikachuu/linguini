@@ -1,0 +1,4 @@
+{$LINGUINI_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy linguini:8000
+}

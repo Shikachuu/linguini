@@ -1,0 +1,12 @@
+mise.local.toml
+mise.*.local.toml
+mise.local.lock
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+data/
+web/node_modules/
+web/dist/

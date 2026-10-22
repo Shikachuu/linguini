@@ -1,0 +1,9 @@
+# Used only when the container entrypoint is overridden to
+#   /usr/local/bin/litestream replicate
+# LITESTREAM_REPLICA_URL examples: s3://bucket/linguini, sftp://user:pass@host/path, file:///backup
+dbs:
+  - path: /data/linguini.db
+    restore-if-db-not-exists: true
+    replica:
+      url: ${LITESTREAM_REPLICA_URL}
+exec: /usr/local/bin/fastapi run --entrypoint linguini.main:app --host 0.0.0.0 --port 8000

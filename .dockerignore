@@ -1,0 +1,10 @@
+.git
+.venv
+.pytest_cache
+.ruff_cache
+__pycache__
+data
+web/node_modules
+web/dist
+.env
+mise.local.toml
