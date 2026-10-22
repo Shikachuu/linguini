@@ -10,6 +10,17 @@ from fastapi.testclient import TestClient
 
 from linguini.auth import apple, google
 
+
+def chat(client: TestClient, home: str, thread: str, *texts: str, **kwargs: Any) -> str:
+    from chat_models import vercel_body
+
+    url = f"/api/households/{home}/threads/{thread}/chat"
+    response = client.post(url, json=vercel_body(*texts, **kwargs), headers=CSRF_HEADERS)
+    assert response.status_code == 200, response.text
+    assert response.headers["x-vercel-ai-ui-message-stream"] == "v1"
+    return response.text
+
+
 CSRF_HEADERS = {"X-Requested-With": "linguini", "Sec-Fetch-Site": "same-origin"}
 
 

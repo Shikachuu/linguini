@@ -7,7 +7,7 @@ import pytest
 from chat_models import Scripted, sse_events, vercel_body
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from helpers import CSRF_HEADERS, login_google, sql
+from helpers import CSRF_HEADERS, chat, login_google, sql
 from pydantic_ai.models.test import TestModel
 
 from linguini.app import create_app
@@ -41,15 +41,6 @@ def home(client: TestClient) -> str:
 @pytest.fixture
 def thread(client: TestClient, home: str) -> str:
     return client.post(f"/api/households/{home}/threads", json={}, headers=CSRF_HEADERS).json()["id"]
-
-
-def chat(client: TestClient, home: str, thread: str, *texts: str, **kwargs) -> str:
-    response = client.post(
-        f"/api/households/{home}/threads/{thread}/chat", json=vercel_body(*texts, **kwargs), headers=CSRF_HEADERS
-    )
-    assert response.status_code == 200, response.text
-    assert response.headers["x-vercel-ai-ui-message-stream"] == "v1"
-    return response.text
 
 
 def runs(settings: Settings) -> list[tuple]:

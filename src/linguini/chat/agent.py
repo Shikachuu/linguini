@@ -9,7 +9,7 @@ from pydantic_ai.profiles.openai import OpenAIModelProfile
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from linguini.chat.deps import AgentDeps
-from linguini.chat.tools import inventory_toolset
+from linguini.chat.tools import inventory_toolset, recipe_toolset
 from linguini.config import Settings
 
 USAGE_LIMITS = UsageLimits(request_limit=25, tool_calls_limit=40)
@@ -35,6 +35,11 @@ When the user says they cooked or ate something, work out the ingredients and qu
 consume_items, and report shortfalls honestly. When the user bought something, call add_items. \
 Prefer set_item over remove_item; remove_item is permanent. Units: g, dkg, kg, ml, dl, l, tsp, \
 tbsp, cup, pcs (db). Quantities must be positive numbers.
+
+Recipes: when the user says they cooked a dish, call list_recipes first; if it is saved, call \
+cook_recipe with the portions made, otherwise work out the ingredients from this conversation and \
+call consume_items. When the user wants to keep a recipe you proposed, save it with save_recipe, \
+including its allergens. Saved recipes are the household's; invent freely, but mark substitutions.
 
 Freshness: expires_at is authoritative when set. Otherwise use last_purchased_at and common sense \
 (fresh meat and fish 2-3 days, poultry 2 days, dairy a week past opening, leafy vegetables a week, \
@@ -74,7 +79,7 @@ def build_agent(model: Model) -> Agent[AgentDeps, str]:
         model,
         deps_type=AgentDeps,
         instructions=INSTRUCTIONS,
-        toolsets=[inventory_toolset],
+        toolsets=[inventory_toolset, recipe_toolset],
         retries=2,
         model_settings=MODEL_SETTINGS,
         name="linguini",

@@ -26,6 +26,7 @@ from linguini.db import Database, ReadSession, run_migrations, utcnow
 from linguini.households.router import router as households_router
 from linguini.inventory.router import router as inventory_router
 from linguini.models import Run, RunStatus
+from linguini.recipes.router import router as recipes_router
 from linguini.web import mount_spa
 
 
@@ -86,6 +87,7 @@ def create_app(
     app.include_router(households_router)
     app.include_router(inventory_router)
     app.include_router(chat_router)
+    app.include_router(recipes_router)
     mount_spa(app, settings.static_dir)
     return app
 

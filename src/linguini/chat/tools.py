@@ -13,7 +13,9 @@ from pydantic_ai import FunctionToolset, ModelRetry, RunContext
 from linguini.chat.deps import AgentDeps
 from linguini.inventory import service
 from linguini.inventory.units import Unit, format_quantity, parse_unit
-from linguini.models import EventCause, InventoryItem
+from linguini.models import EventCause, InventoryItem, Recipe, RecipeSource
+from linguini.recipes import service as recipes
+from linguini.recipes.service import MAX_SERVINGS, RecipeData
 
 inventory_toolset: FunctionToolset[AgentDeps] = FunctionToolset(id="inventory")
 
@@ -230,3 +232,113 @@ async def undo(ctx: RunContext[AgentDeps], event_id: str | None = None) -> dict[
     if target is None:
         d.undid_previous_turn = True
     return {"undone": len(events), "events": [{"id": str(e.id), "item_id": str(e.item_id)} for e in events]}
+
+
+recipe_toolset: FunctionToolset[AgentDeps] = FunctionToolset(id="recipes")
+
+
+def _recipe_view(recipe: Recipe, *, full: bool) -> dict[str, Any]:
+    view: dict[str, Any] = {
+        "id": str(recipe.id),
+        "title": recipe.title,
+        "servings": recipe.servings,
+        "allergens": recipe.allergens,
+    }
+    if full:
+        view["ingredients"] = recipe.ingredients
+        view["steps"] = recipe.steps
+    return view
+
+
+@recipe_toolset.tool
+async def list_recipes(ctx: RunContext[AgentDeps], query: str | None = None) -> list[dict[str, Any]]:
+    """List the household's saved recipes, optionally filtered by title or ingredient.
+
+    Args:
+        query: A word from the title or an ingredient name; omit to list everything.
+
+    Returns:
+        Recipes with id, title, servings and allergens; use get_recipe for the full content.
+    """
+    async with ctx.deps.db.read_session() as session:
+        rows = await recipes.list_recipes(session, ctx.deps.household_id, query)
+    return [_recipe_view(r, full=False) for r in rows]
+
+
+@recipe_toolset.tool
+async def get_recipe(ctx: RunContext[AgentDeps], recipe_id: str) -> dict[str, Any]:
+    """Return a saved recipe with its ingredients and steps.
+
+    Args:
+        recipe_id: The id from list_recipes or save_recipe.
+
+    Returns:
+        The full recipe.
+
+    Raises:
+        ModelRetry: when the id is unknown.
+    """
+    async with ctx.deps.db.read_session() as session:
+        try:
+            recipe = await recipes.get_recipe(session, ctx.deps.household_id, _recipe_uuid(recipe_id))
+        except HTTPException as exc:
+            raise ModelRetry(str(exc.detail)) from exc
+    return _recipe_view(recipe, full=True)
+
+
+@recipe_toolset.tool
+async def save_recipe(ctx: RunContext[AgentDeps], recipe: RecipeData) -> dict[str, Any]:
+    """Save a recipe the user wants to keep, including one you invented in this conversation.
+
+    Always include every allergen the dish contains. Quantities are per the given servings.
+
+    Args:
+        recipe: Title, servings, ingredients with quantities and units, steps, and allergens.
+
+    Returns:
+        The saved recipe's id and title.
+    """
+    d = ctx.deps
+    async with d.db.write_lock, d.db.write_session() as session:
+        row = await recipes.create_recipe(
+            session, d.household_id, recipe, source=RecipeSource.CHAT, thread_id=d.thread_id
+        )
+        await session.commit()
+    return _recipe_view(row, full=False)
+
+
+@recipe_toolset.tool
+async def cook_recipe(ctx: RunContext[AgentDeps], recipe_id: str, servings: int | None = None) -> dict[str, Any]:
+    """Record that a saved recipe was cooked: its required ingredients are consumed from the inventory.
+
+    Use this when the user says they made a dish that is saved; for unsaved dishes use consume_items.
+
+    Args:
+        recipe_id: The id from list_recipes.
+        servings: Portions actually made, 1 to 100; defaults to the recipe's servings.
+
+    Returns:
+        Per-ingredient outcomes with shortfalls and event ids for undo.
+
+    Raises:
+        ModelRetry: when the id is unknown or servings is out of range.
+    """
+    d = ctx.deps
+    if servings is not None and not 1 <= servings <= MAX_SERVINGS:
+        raise ModelRetry(f"servings must be between 1 and {MAX_SERVINGS}")
+    try:
+        async with d.db.write_lock, d.db.write_session() as session:
+            row, batch = await recipes.cook_recipe(
+                session, d.household_id, _recipe_uuid(recipe_id), _actor(ctx, EventCause.COOK), servings
+            )
+            await session.commit()
+    except HTTPException as exc:
+        raise ModelRetry(str(exc.detail)) from exc
+    return {"recipe": _recipe_view(row, full=False), **_batch_view(batch)}
+
+
+def _recipe_uuid(value: str) -> uuid.UUID:
+    try:
+        return uuid.UUID(value)
+    except ValueError as exc:
+        raise ModelRetry("recipe_id must be an id returned by list_recipes or save_recipe.") from exc

@@ -58,6 +58,11 @@ class Scripted:
             if prompt == "undo twice" and undo_calls == 1:
                 yield call("undo", {}, "call-undo-2")
                 return
+            if returns[0].tool_name == "list_recipes" and prompt.startswith("cook "):
+                found = returns[0].content
+                if isinstance(found, list) and found:
+                    yield call("cook_recipe", {"recipe_id": found[0]["id"], "servings": 4}, "call-cook")
+                    return
             yield "Done: "
             yield str(returns[0].content)[:80]
             return
@@ -73,6 +78,26 @@ class Scripted:
             yield call("remove_item", {"name": prompt[7:], "user_confirmed": False}, "call-remove")
         elif prompt.startswith("delete "):
             yield call("remove_item", {"name": prompt[7:], "user_confirmed": True}, "call-delete")
+        elif prompt.startswith("save "):
+            recipe = {
+                "title": prompt[5:],
+                "servings": 2,
+                "ingredients": [
+                    {"name": "rizs", "quantity": 200, "unit": "g"},
+                    {"name": "vaj", "quantity": 20, "unit": "g", "optional": True},
+                ],
+                "steps": ["cook"],
+                "allergens": ["dairy"],
+            }
+            yield call("save_recipe", {"recipe": recipe}, "call-save")
+        elif prompt.startswith("cook id "):
+            yield call("cook_recipe", {"recipe_id": prompt[8:]}, "call-cook-id")
+        elif prompt.startswith("cook big "):
+            yield call("cook_recipe", {"recipe_id": prompt[9:], "servings": 1000}, "call-cook-big")
+        elif prompt.startswith("cook "):
+            yield call("list_recipes", {"query": prompt[5:]}, "call-list")
+        elif prompt.startswith("recipe "):
+            yield call("get_recipe", {"recipe_id": prompt[7:]}, "call-get")
         elif prompt == "wait":
             self.gate = asyncio.Event()
             yield "waiting..."
