@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 from pydantic import BaseModel, Field
@@ -15,7 +15,7 @@ from linguini.households.router import MemberHousehold
 from linguini.inventory import service as inventory
 from linguini.models import EventCause, Recipe, RecipeSource
 from linguini.recipes import service
-from linguini.recipes.service import MAX_SERVINGS, RecipeData
+from linguini.recipes.service import MAX_SERVINGS, Ingredient, RecipeData
 
 router = APIRouter(prefix="/api/households/{household_id}", tags=["recipes"])
 
@@ -26,7 +26,7 @@ class RecipeOut(BaseModel):
     id: uuid.UUID
     title: str
     servings: int
-    ingredients: list[dict[str, Any]]
+    ingredients: list[Ingredient]
     steps: list[str]
     allergens: list[str]
     source: RecipeSource
@@ -49,11 +49,20 @@ class CookIn(BaseModel):
     servings: int | None = Field(default=None, ge=1, le=MAX_SERVINGS)
 
 
+class CookLine(BaseModel):
+    """What cooking did to one ingredient."""
+
+    name: str
+    ok: bool
+    message: str
+    event_id: uuid.UUID | None
+
+
 class CookResult(BaseModel):
     """What cooking consumed."""
 
     recipe: RecipeOut
-    results: list[dict[str, Any]]
+    results: list[CookLine]
 
 
 @router.get("/recipes")
@@ -104,7 +113,7 @@ async def cook_recipe(
     servings = body.servings if body is not None else None
     recipe, batch = await service.cook_recipe(session, household.id, recipe_id, actor, servings)
     results = [
-        {"name": r.name, "ok": r.ok, "message": r.message, "event_id": str(r.event.id) if r.event else None}
+        CookLine(name=r.name, ok=r.ok, message=r.message, event_id=r.event.id if r.event else None)
         for r in batch.results
     ]
     return CookResult(recipe=RecipeOut.from_row(recipe), results=results)

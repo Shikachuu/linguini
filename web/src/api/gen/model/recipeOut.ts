@@ -4,7 +4,7 @@
  * Linguini
  * OpenAPI spec version: 0.1.0
  */
-import type { RecipeOutIngredientsItem } from './recipeOutIngredientsItem';
+import type { Ingredient } from './ingredient';
 import type { RecipeSource } from './recipeSource';
 
 /**
@@ -14,7 +14,7 @@ export interface RecipeOut {
   id: string;
   title: string;
   servings: number;
-  ingredients: RecipeOutIngredientsItem[];
+  ingredients: Ingredient[];
   steps: string[];
   allergens: string[];
   source: RecipeSource;

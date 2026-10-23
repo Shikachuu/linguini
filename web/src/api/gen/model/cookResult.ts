@@ -4,7 +4,7 @@
  * Linguini
  * OpenAPI spec version: 0.1.0
  */
-import type { CookResultResultsItem } from './cookResultResultsItem';
+import type { CookLine } from './cookLine';
 import type { RecipeOut } from './recipeOut';
 
 /**
@@ -12,5 +12,5 @@ import type { RecipeOut } from './recipeOut';
  */
 export interface CookResult {
   recipe: RecipeOut;
-  results: CookResultResultsItem[];
+  results: CookLine[];
 }

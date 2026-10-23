@@ -1920,6 +1920,43 @@
         "title": "CookIn",
         "description": "How many portions were made; omit for the recipe's own servings."
       },
+      "CookLine": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "ok",
+          "message",
+          "event_id"
+        ],
+        "title": "CookLine",
+        "description": "What cooking did to one ingredient."
+      },
       "CookResult": {
         "properties": {
           "recipe": {
@@ -1927,8 +1964,7 @@
           },
           "results": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/CookLine"
             },
             "type": "array",
             "title": "Results"
@@ -2679,8 +2715,7 @@
           },
           "ingredients": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/Ingredient"
             },
             "type": "array",
             "title": "Ingredients"
