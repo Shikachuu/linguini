@@ -86,3 +86,10 @@ def sql(db_path: Path, statement: str, *params: Any) -> list[tuple[Any, ...]]:
 
 def backdate(db_path: Path, table: str, column: str, delta: str, where: str = "1=1") -> None:
     sql(db_path, f"UPDATE {table} SET {column} = datetime('now', ?) WHERE {where}", delta)
+
+
+def login_error(response: Any) -> str | None:
+    assert response.status_code == 303, response.text
+    location = urlsplit(response.headers["location"])
+    assert location.path == "/"
+    return parse_qs(location.query).get("login_error", [None])[0]

@@ -3,7 +3,7 @@ import time
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from helpers import CSRF_HEADERS, IdToken, backdate, fake_code, login_apple, login_google, sql, start_login
+from helpers import CSRF_HEADERS, IdToken, backdate, fake_code, login_apple, login_error, login_google, sql, start_login
 
 from linguini.auth import google
 from linguini.auth.crypto import decrypt
@@ -67,7 +67,7 @@ def test_expired_invite_is_useless(client: TestClient, settings: Settings) -> No
     invite = client.post(f"/api/households/{household['id']}/invites", headers=CSRF_HEADERS).json()
     backdate(settings.database_path, "invites", "expires_at", "-1 minute")
     bob = TestClient(client.app)
-    assert login_google(bob, "bob", invite=invite["code"]).status_code == 403
+    assert login_error(login_google(bob, "bob", invite=invite["code"])) == "invite_required"
 
 
 def test_expired_nonce_is_rejected(client: TestClient, settings: Settings, id_token: IdToken) -> None:
@@ -147,14 +147,16 @@ def test_csrf_exempts_apple_callback_and_ignores_other_cookies(client: TestClien
     assert client.post("/api/auth/nonce").status_code == 200
 
 
-def test_link_conflict_is_409_and_link_sets_no_cookie(client: TestClient) -> None:
+def test_link_conflict_is_reported_and_link_sets_no_cookie(client: TestClient) -> None:
     login_google(client, "alice")
     login_apple(client, "apple-shared")
     bob = TestClient(client.app)
     invite_owner = client.post("/api/households", json={"name": "H"}, headers=CSRF_HEADERS).json()
     invite = client.post(f"/api/households/{invite_owner['id']}/invites", headers=CSRF_HEADERS).json()
     login_google(bob, "bob", invite=invite["code"])
-    assert login_apple(bob, "apple-shared").status_code == 409
+    conflict = login_apple(bob, "apple-shared")
+    assert login_error(conflict) == "That account is already linked to another user"
+    assert "sid=" not in conflict.headers.get("set-cookie", "")
     again = login_apple(client, "apple-shared")
     assert again.status_code == 303
     assert "set-cookie" not in again.headers or "sid=" not in again.headers.get("set-cookie", "")

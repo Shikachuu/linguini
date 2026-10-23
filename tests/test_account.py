@@ -5,7 +5,7 @@ import pytest
 from chat_models import Scripted
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from helpers import CSRF_HEADERS, IdToken, backdate, chat, login_apple, login_google, sql
+from helpers import CSRF_HEADERS, IdToken, backdate, chat, login_apple, login_error, login_google, sql
 from pydantic import HttpUrl
 
 from linguini.app import create_app
@@ -92,7 +92,7 @@ def test_relogin_after_delete_needs_an_invite_and_gets_a_new_account(client: Tes
     client.delete("/api/me", headers=CSRF_HEADERS)
     again = TestClient(client.app)
     response = login_google(again, "ada")
-    assert response.status_code == 403 and response.json()["detail"] == "invite_required"
+    assert login_error(response) == "invite_required"
     assert login_google(again, "ada", invite=new_invite["code"]).status_code == 303
     assert again.get("/api/me").json()["id"] != old_id
 

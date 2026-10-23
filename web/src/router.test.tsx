@@ -36,8 +36,10 @@ describe("routing", () => {
 
   it("shows a provider login error passed back to the root", async () => {
     server.use(config(true, true));
-    renderAt("/?login_error=access_denied");
-    expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in failed: access_denied");
+    renderAt("/?login_error=invite_required");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "You need an invite link from a household member to create an account.",
+    );
     expect(await screen.findByRole("link", { name: "Continue with Apple" })).toBeInTheDocument();
   });
 

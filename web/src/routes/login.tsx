@@ -16,6 +16,15 @@ const PROVIDERS: { id: Provider; label: string }[] = [
   { id: "apple", label: "Continue with Apple" },
 ];
 
+const LOGIN_ERRORS: Record<string, string> = {
+  invite_required: "You need an invite link from a household member to create an account.",
+  access_denied: "Sign-in was cancelled.",
+};
+
+function loginErrorMessage(reason: string): string {
+  return LOGIN_ERRORS[reason] ?? `Sign-in failed: ${reason}`;
+}
+
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): LoginSearch => {
     const result: LoginSearch = {};
@@ -47,7 +56,7 @@ export function Login() {
         <CardContent className="flex flex-col gap-3">
           {login_error && (
             <p role="alert" className="text-destructive text-sm">
-              Sign-in failed: {login_error}
+              {loginErrorMessage(login_error)}
             </p>
           )}
           {isPending && <Skeleton className="h-9 w-full" />}

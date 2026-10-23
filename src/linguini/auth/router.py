@@ -466,24 +466,31 @@ async def _finish_browser_login(
 ) -> RedirectResponse:
     settings = _settings(request)
     provider = Provider(peeked.provider)
-    async with db.write_lock, db.write_session() as session:
-        pending = await consume_state(session, peeked.state, provider.value, peeked.intent)
-        linking = pending.intent is OAuthIntent.LINK
-        user = await accounts.sign_in(
-            session,
-            provider=provider,
-            claims=claims,
-            display_name=display_name,
-            invite_code=None if linking else pending.invite_code,
-            link_to=pending.user_id if linking else None,
-            refresh_token_enc=refresh_token_enc,
-            apple_client_id=apple_client_id,
-        )
-        if pending.intent is OAuthIntent.LINK:
+    try:
+        async with db.write_lock, db.write_session() as session:
+            pending = await consume_state(session, peeked.state, provider.value, peeked.intent)
+            linking = pending.intent is OAuthIntent.LINK
+            user = await accounts.sign_in(
+                session,
+                provider=provider,
+                claims=claims,
+                display_name=display_name,
+                invite_code=None if linking else pending.invite_code,
+                link_to=pending.user_id if linking else None,
+                refresh_token_enc=refresh_token_enc,
+                apple_client_id=apple_client_id,
+            )
+            if pending.intent is OAuthIntent.LINK:
+                await session.commit()
+                return RedirectResponse(pending.return_to or "/", status_code=status.HTTP_303_SEE_OTHER)
+            _, token = await create_session(
+                session, settings, user.id, ClientKind.WEB, request.headers.get("user-agent")
+            )
             await session.commit()
-            return RedirectResponse(pending.return_to or "/", status_code=status.HTTP_303_SEE_OTHER)
-        _, token = await create_session(session, settings, user.id, ClientKind.WEB, request.headers.get("user-agent"))
-        await session.commit()
+    except HTTPException as exc:
+        if exc.status_code not in {status.HTTP_403_FORBIDDEN, status.HTTP_409_CONFLICT}:
+            raise
+        return _login_failed(str(exc.detail))
     response = RedirectResponse(pending.return_to or "/", status_code=status.HTTP_303_SEE_OTHER)
     set_session_cookie(response, settings, token, settings.session_ttl_days * 86400)
     response.delete_cookie(_binding_cookie(settings), path="/")

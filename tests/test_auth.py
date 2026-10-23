@@ -1,7 +1,7 @@
 import pytest
 import respx
 from fastapi.testclient import TestClient
-from helpers import CSRF_HEADERS, IdToken, fake_code, login_apple, login_google, start_login
+from helpers import CSRF_HEADERS, IdToken, fake_code, login_apple, login_error, login_google, start_login
 
 from linguini.auth import google
 
@@ -23,8 +23,8 @@ def test_second_user_needs_invite(client: TestClient) -> None:
     login_google(client, "alice")
     stranger = TestClient(client.app)
     response = login_google(stranger, "bob")
-    assert response.status_code == 403
-    assert response.json()["detail"] == "invite_required"
+    assert login_error(response) == "invite_required"
+    assert "sid=" not in response.headers.get("set-cookie", "")
 
 
 def test_invite_lets_second_user_in_and_joins_household(client: TestClient) -> None:
@@ -38,7 +38,7 @@ def test_invite_lets_second_user_in_and_joins_household(client: TestClient) -> N
     assert [h["name"] for h in bob.get("/api/me").json()["households"]] == ["Home"]
 
     carol = TestClient(client.app)
-    assert login_google(carol, "carol", invite=invite["code"]).status_code == 403
+    assert login_error(login_google(carol, "carol", invite=invite["code"])) == "invite_required"
 
 
 def test_existing_user_logs_in_again(client: TestClient) -> None:
