@@ -38,6 +38,7 @@ router = APIRouter(prefix="/api/households/{household_id}", tags=["chat"])
 log = logging.getLogger(__name__)
 
 UNTITLED = "New chat"
+AI_SDK_VERSION = 7
 STALE_LOCK_AFTER = timedelta(seconds=RUN_TIMEOUT + 60)
 
 
@@ -99,7 +100,7 @@ async def get_thread(household: MemberHousehold, thread_id: uuid.UUID, session: 
     """A thread with its full message history for the UI, including prompts of failed runs."""
     thread = await _get_thread(session, household.id, thread_id)
     runs = await history.stored_runs(session, thread.id, include_failed=True)
-    ui = VercelAIAdapter.dump_messages(history.thread_messages(runs))
+    ui = VercelAIAdapter.dump_messages(history.thread_messages(runs), sdk_version=AI_SDK_VERSION)
     return ThreadDetail(
         **_thread_out(thread).model_dump(), messages=[m.model_dump(mode="json", by_alias=True) for m in ui]
     )
@@ -236,7 +237,7 @@ async def chat(
             if live is kifli.ConnectionState.UNAVAILABLE
             else [],
         )
-        adapter = VercelAIAdapter(agent, run_input, accept=request.headers.get("accept"))
+        adapter = VercelAIAdapter(agent, run_input, accept=request.headers.get("accept"), sdk_version=AI_SDK_VERSION)
         bookkeeper = _RunBookkeeper(db, locks, run.id, thread_id, _prompt_text(prompt), thread.title == UNTITLED)
         stream = adapter.run_stream(
             message_history=model_history,

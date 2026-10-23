@@ -10,6 +10,8 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.routing import APIRoute
+from pydantic import BaseModel
 from pydantic_ai.models import Model
 from sqlalchemy import delete, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,6 +53,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             await asyncio.to_thread(app.state.tracer_provider.shutdown)
 
 
+class ProvidersOut(BaseModel):
+    """Which login providers are configured."""
+
+    google: bool
+    apple: bool
+
+
+class ConfigOut(BaseModel):
+    """Public configuration the web app needs before login."""
+
+    providers: ProvidersOut
+    locale: str
+
+
+def operation_id(route: APIRoute) -> str:
+    """Name OpenAPI operations after their handler so generated clients stay readable.
+
+    Returns:
+        The route's handler name.
+    """
+    return route.name
+
+
 async def fail_interrupted_runs(session: AsyncSession) -> None:
     """Runs still marked running at startup were cut off by a restart."""
     await session.execute(
@@ -74,7 +99,13 @@ def create_app(
         The configured FastAPI app.
     """
     settings = settings or get_settings()
-    app = FastAPI(title="Linguini", lifespan=lifespan, docs_url="/docs", openapi_url="/api/openapi.json")
+    app = FastAPI(
+        title="Linguini",
+        lifespan=lifespan,
+        docs_url="/docs",
+        openapi_url="/api/openapi.json",
+        generate_unique_id_function=operation_id,
+    )
     app.state.settings = settings
     chat_model = model or build_model(settings)
     tracing = observability.configure(settings)
@@ -92,11 +123,11 @@ def create_app(
         return {"status": "ok"}
 
     @app.get("/api/config", tags=["meta"])
-    async def config(settings: Annotated[Settings, Depends(current_settings)]) -> dict[str, object]:
-        return {
-            "providers": {"google": settings.google_enabled, "apple": settings.apple_enabled},
-            "locale": settings.locale,
-        }
+    async def config(settings: Annotated[Settings, Depends(current_settings)]) -> ConfigOut:
+        return ConfigOut(
+            providers=ProvidersOut(google=settings.google_enabled, apple=settings.apple_enabled),
+            locale=settings.locale,
+        )
 
     app.include_router(auth_router)
     app.include_router(households_router)

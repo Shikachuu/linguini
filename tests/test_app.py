@@ -11,7 +11,15 @@ def test_health(client: TestClient) -> None:
 
 
 def test_config_reports_enabled_providers(client: TestClient) -> None:
-    assert client.get("/api/config").json()["providers"] == {"google": True, "apple": True}
+    assert client.get("/api/config").json() == {"providers": {"google": True, "apple": True}, "locale": "hu-HU"}
+
+
+def test_openapi_operation_ids_are_handler_names(client: TestClient) -> None:
+    paths = client.get("/api/openapi.json").json()["paths"]
+    assert paths["/api/me"]["get"]["operationId"] == "me"
+    assert paths["/api/households/{household_id}/threads"]["post"]["operationId"] == "create_thread"
+    ids = [op["operationId"] for ops in paths.values() for op in ops.values()]
+    assert len(ids) == len(set(ids))
 
 
 def test_unknown_api_path_is_json_404(client: TestClient) -> None:
