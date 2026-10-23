@@ -10,33 +10,229 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthedRouteImport } from './routes/_authed'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthedAccountRouteImport } from './routes/_authed/account'
+import { Route as AuthedWelcomeRouteImport } from './routes/_authed/welcome'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
+import { Route as AuthedHHidRouteImport } from './routes/_authed/h/$hid'
+import { Route as AuthedHHidChatRouteImport } from './routes/_authed/h/$hid/chat'
+import { Route as AuthedHHidSettingsRouteImport } from './routes/_authed/h/$hid/settings'
+import { Route as AuthedHHidChatIndexRouteImport } from './routes/_authed/h/$hid/chat/index'
+import { Route as AuthedHHidChatTidRouteImport } from './routes/_authed/h/$hid/chat/$tid'
+import { Route as AuthedHHidInventoryIndexRouteImport } from './routes/_authed/h/$hid/inventory/index'
+import { Route as AuthedHHidInventoryEventsRouteImport } from './routes/_authed/h/$hid/inventory/events'
+import { Route as AuthedHHidRecipesIndexRouteImport } from './routes/_authed/h/$hid/recipes/index'
+import { Route as AuthedHHidRecipesNewRouteImport } from './routes/_authed/h/$hid/recipes/new'
+import { Route as AuthedHHidRecipesRidIndexRouteImport } from './routes/_authed/h/$hid/recipes/$rid/index'
+import { Route as AuthedHHidRecipesRidEditRouteImport } from './routes/_authed/h/$hid/recipes/$rid/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedAccountRoute = AuthedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedWelcomeRoute = AuthedWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedHHidRoute = AuthedHHidRouteImport.update({
+  id: '/h/$hid',
+  path: '/h/$hid',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedHHidChatRoute = AuthedHHidChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => AuthedHHidRoute,
+} as any)
+const AuthedHHidSettingsRoute = AuthedHHidSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthedHHidRoute,
+} as any)
+const AuthedHHidChatIndexRoute = AuthedHHidChatIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedHHidChatRoute,
+} as any)
+const AuthedHHidChatTidRoute = AuthedHHidChatTidRouteImport.update({
+  id: '/$tid',
+  path: '/$tid',
+  getParentRoute: () => AuthedHHidChatRoute,
+} as any)
+const AuthedHHidInventoryIndexRoute =
+  AuthedHHidInventoryIndexRouteImport.update({
+    id: '/inventory/',
+    path: '/inventory/',
+    getParentRoute: () => AuthedHHidRoute,
+  } as any)
+const AuthedHHidInventoryEventsRoute =
+  AuthedHHidInventoryEventsRouteImport.update({
+    id: '/inventory/events',
+    path: '/inventory/events',
+    getParentRoute: () => AuthedHHidRoute,
+  } as any)
+const AuthedHHidRecipesIndexRoute = AuthedHHidRecipesIndexRouteImport.update({
+  id: '/recipes/',
+  path: '/recipes/',
+  getParentRoute: () => AuthedHHidRoute,
+} as any)
+const AuthedHHidRecipesNewRoute = AuthedHHidRecipesNewRouteImport.update({
+  id: '/recipes/new',
+  path: '/recipes/new',
+  getParentRoute: () => AuthedHHidRoute,
+} as any)
+const AuthedHHidRecipesRidIndexRoute =
+  AuthedHHidRecipesRidIndexRouteImport.update({
+    id: '/recipes/$rid/',
+    path: '/recipes/$rid/',
+    getParentRoute: () => AuthedHHidRoute,
+  } as any)
+const AuthedHHidRecipesRidEditRoute =
+  AuthedHHidRecipesRidEditRouteImport.update({
+    id: '/recipes/$rid/edit',
+    path: '/recipes/$rid/edit',
+    getParentRoute: () => AuthedHHidRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/account': typeof AuthedAccountRoute
+  '/welcome': typeof AuthedWelcomeRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/h/$hid': typeof AuthedHHidRouteWithChildren
+  '/h/$hid/chat': typeof AuthedHHidChatRouteWithChildren
+  '/h/$hid/settings': typeof AuthedHHidSettingsRoute
+  '/h/$hid/chat/$tid': typeof AuthedHHidChatTidRoute
+  '/h/$hid/inventory/events': typeof AuthedHHidInventoryEventsRoute
+  '/h/$hid/recipes/new': typeof AuthedHHidRecipesNewRoute
+  '/h/$hid/chat/': typeof AuthedHHidChatIndexRoute
+  '/h/$hid/inventory/': typeof AuthedHHidInventoryIndexRoute
+  '/h/$hid/recipes/': typeof AuthedHHidRecipesIndexRoute
+  '/h/$hid/recipes/$rid/edit': typeof AuthedHHidRecipesRidEditRoute
+  '/h/$hid/recipes/$rid/': typeof AuthedHHidRecipesRidIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/account': typeof AuthedAccountRoute
+  '/welcome': typeof AuthedWelcomeRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/h/$hid': typeof AuthedHHidRouteWithChildren
+  '/h/$hid/settings': typeof AuthedHHidSettingsRoute
+  '/h/$hid/chat/$tid': typeof AuthedHHidChatTidRoute
+  '/h/$hid/inventory/events': typeof AuthedHHidInventoryEventsRoute
+  '/h/$hid/recipes/new': typeof AuthedHHidRecipesNewRoute
+  '/h/$hid/chat': typeof AuthedHHidChatIndexRoute
+  '/h/$hid/inventory': typeof AuthedHHidInventoryIndexRoute
+  '/h/$hid/recipes': typeof AuthedHHidRecipesIndexRoute
+  '/h/$hid/recipes/$rid/edit': typeof AuthedHHidRecipesRidEditRoute
+  '/h/$hid/recipes/$rid': typeof AuthedHHidRecipesRidIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authed': typeof AuthedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_authed/account': typeof AuthedAccountRoute
+  '/_authed/welcome': typeof AuthedWelcomeRoute
+  '/invite/$code': typeof InviteCodeRoute
+  '/_authed/h/$hid': typeof AuthedHHidRouteWithChildren
+  '/_authed/h/$hid/chat': typeof AuthedHHidChatRouteWithChildren
+  '/_authed/h/$hid/settings': typeof AuthedHHidSettingsRoute
+  '/_authed/h/$hid/chat/$tid': typeof AuthedHHidChatTidRoute
+  '/_authed/h/$hid/inventory/events': typeof AuthedHHidInventoryEventsRoute
+  '/_authed/h/$hid/recipes/new': typeof AuthedHHidRecipesNewRoute
+  '/_authed/h/$hid/chat/': typeof AuthedHHidChatIndexRoute
+  '/_authed/h/$hid/inventory/': typeof AuthedHHidInventoryIndexRoute
+  '/_authed/h/$hid/recipes/': typeof AuthedHHidRecipesIndexRoute
+  '/_authed/h/$hid/recipes/$rid/edit': typeof AuthedHHidRecipesRidEditRoute
+  '/_authed/h/$hid/recipes/$rid/': typeof AuthedHHidRecipesRidIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/account'
+    | '/welcome'
+    | '/invite/$code'
+    | '/h/$hid'
+    | '/h/$hid/chat'
+    | '/h/$hid/settings'
+    | '/h/$hid/chat/$tid'
+    | '/h/$hid/inventory/events'
+    | '/h/$hid/recipes/new'
+    | '/h/$hid/chat/'
+    | '/h/$hid/inventory/'
+    | '/h/$hid/recipes/'
+    | '/h/$hid/recipes/$rid/edit'
+    | '/h/$hid/recipes/$rid/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/account'
+    | '/welcome'
+    | '/invite/$code'
+    | '/h/$hid'
+    | '/h/$hid/settings'
+    | '/h/$hid/chat/$tid'
+    | '/h/$hid/inventory/events'
+    | '/h/$hid/recipes/new'
+    | '/h/$hid/chat'
+    | '/h/$hid/inventory'
+    | '/h/$hid/recipes'
+    | '/h/$hid/recipes/$rid/edit'
+    | '/h/$hid/recipes/$rid'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authed'
+    | '/login'
+    | '/_authed/account'
+    | '/_authed/welcome'
+    | '/invite/$code'
+    | '/_authed/h/$hid'
+    | '/_authed/h/$hid/chat'
+    | '/_authed/h/$hid/settings'
+    | '/_authed/h/$hid/chat/$tid'
+    | '/_authed/h/$hid/inventory/events'
+    | '/_authed/h/$hid/recipes/new'
+    | '/_authed/h/$hid/chat/'
+    | '/_authed/h/$hid/inventory/'
+    | '/_authed/h/$hid/recipes/'
+    | '/_authed/h/$hid/recipes/$rid/edit'
+    | '/_authed/h/$hid/recipes/$rid/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthedRoute: typeof AuthedRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  InviteCodeRoute: typeof InviteCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +244,181 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed/account': {
+      id: '/_authed/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthedAccountRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/welcome': {
+      id: '/_authed/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof AuthedWelcomeRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed/h/$hid': {
+      id: '/_authed/h/$hid'
+      path: '/h/$hid'
+      fullPath: '/h/$hid'
+      preLoaderRoute: typeof AuthedHHidRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/h/$hid/chat': {
+      id: '/_authed/h/$hid/chat'
+      path: '/chat'
+      fullPath: '/h/$hid/chat'
+      preLoaderRoute: typeof AuthedHHidChatRouteImport
+      parentRoute: typeof AuthedHHidRoute
+    }
+    '/_authed/h/$hid/settings': {
+      id: '/_authed/h/$hid/settings'
+      path: '/settings'
+      fullPath: '/h/$hid/settings'
+      preLoaderRoute: typeof AuthedHHidSettingsRouteImport
+      parentRoute: typeof AuthedHHidRoute
+    }
+    '/_authed/h/$hid/chat/': {
+      id: '/_authed/h/$hid/chat/'
+      path: '/'
+      fullPath: '/h/$hid/chat/'
+      preLoaderRoute: typeof AuthedHHidChatIndexRouteImport
+      parentRoute: typeof AuthedHHidChatRoute
+    }
+    '/_authed/h/$hid/chat/$tid': {
+      id: '/_authed/h/$hid/chat/$tid'
+      path: '/$tid'
+      fullPath: '/h/$hid/chat/$tid'
+      preLoaderRoute: typeof AuthedHHidChatTidRouteImport
+      parentRoute: typeof AuthedHHidChatRoute
+    }
+    '/_authed/h/$hid/inventory/': {
+      id: '/_authed/h/$hid/inventory/'
+      path: '/inventory'
+      fullPath: '/h/$hid/inventory/'
+      preLoaderRoute: typeof AuthedHHidInventoryIndexRouteImport
+      parentRoute: typeof AuthedHHidRoute
+    }
+    '/_authed/h/$hid/inventory/events': {
+      id: '/_authed/h/$hid/inventory/events'
+      path: '/inventory/events'
+      fullPath: '/h/$hid/inventory/events'
+      preLoaderRoute: typeof AuthedHHidInventoryEventsRouteImport
+      parentRoute: typeof AuthedHHidRoute
+    }
+    '/_authed/h/$hid/recipes/': {
+      id: '/_authed/h/$hid/recipes/'
+      path: '/recipes'
+      fullPath: '/h/$hid/recipes/'
+      preLoaderRoute: typeof AuthedHHidRecipesIndexRouteImport
+      parentRoute: typeof AuthedHHidRoute
+    }
+    '/_authed/h/$hid/recipes/new': {
+      id: '/_authed/h/$hid/recipes/new'
+      path: '/recipes/new'
+      fullPath: '/h/$hid/recipes/new'
+      preLoaderRoute: typeof AuthedHHidRecipesNewRouteImport
+      parentRoute: typeof AuthedHHidRoute
+    }
+    '/_authed/h/$hid/recipes/$rid/': {
+      id: '/_authed/h/$hid/recipes/$rid/'
+      path: '/recipes/$rid'
+      fullPath: '/h/$hid/recipes/$rid/'
+      preLoaderRoute: typeof AuthedHHidRecipesRidIndexRouteImport
+      parentRoute: typeof AuthedHHidRoute
+    }
+    '/_authed/h/$hid/recipes/$rid/edit': {
+      id: '/_authed/h/$hid/recipes/$rid/edit'
+      path: '/recipes/$rid/edit'
+      fullPath: '/h/$hid/recipes/$rid/edit'
+      preLoaderRoute: typeof AuthedHHidRecipesRidEditRouteImport
+      parentRoute: typeof AuthedHHidRoute
+    }
   }
 }
 
+interface AuthedHHidChatRouteChildren {
+  AuthedHHidChatTidRoute: typeof AuthedHHidChatTidRoute
+  AuthedHHidChatIndexRoute: typeof AuthedHHidChatIndexRoute
+}
+
+const AuthedHHidChatRouteChildren: AuthedHHidChatRouteChildren = {
+  AuthedHHidChatTidRoute: AuthedHHidChatTidRoute,
+  AuthedHHidChatIndexRoute: AuthedHHidChatIndexRoute,
+}
+
+const AuthedHHidChatRouteWithChildren = AuthedHHidChatRoute._addFileChildren(
+  AuthedHHidChatRouteChildren,
+)
+
+interface AuthedHHidRouteChildren {
+  AuthedHHidChatRoute: typeof AuthedHHidChatRouteWithChildren
+  AuthedHHidSettingsRoute: typeof AuthedHHidSettingsRoute
+  AuthedHHidInventoryEventsRoute: typeof AuthedHHidInventoryEventsRoute
+  AuthedHHidRecipesNewRoute: typeof AuthedHHidRecipesNewRoute
+  AuthedHHidInventoryIndexRoute: typeof AuthedHHidInventoryIndexRoute
+  AuthedHHidRecipesIndexRoute: typeof AuthedHHidRecipesIndexRoute
+  AuthedHHidRecipesRidEditRoute: typeof AuthedHHidRecipesRidEditRoute
+  AuthedHHidRecipesRidIndexRoute: typeof AuthedHHidRecipesRidIndexRoute
+}
+
+const AuthedHHidRouteChildren: AuthedHHidRouteChildren = {
+  AuthedHHidChatRoute: AuthedHHidChatRouteWithChildren,
+  AuthedHHidSettingsRoute: AuthedHHidSettingsRoute,
+  AuthedHHidInventoryEventsRoute: AuthedHHidInventoryEventsRoute,
+  AuthedHHidRecipesNewRoute: AuthedHHidRecipesNewRoute,
+  AuthedHHidInventoryIndexRoute: AuthedHHidInventoryIndexRoute,
+  AuthedHHidRecipesIndexRoute: AuthedHHidRecipesIndexRoute,
+  AuthedHHidRecipesRidEditRoute: AuthedHHidRecipesRidEditRoute,
+  AuthedHHidRecipesRidIndexRoute: AuthedHHidRecipesRidIndexRoute,
+}
+
+const AuthedHHidRouteWithChildren = AuthedHHidRoute._addFileChildren(
+  AuthedHHidRouteChildren,
+)
+
+interface AuthedRouteChildren {
+  AuthedAccountRoute: typeof AuthedAccountRoute
+  AuthedWelcomeRoute: typeof AuthedWelcomeRoute
+  AuthedHHidRoute: typeof AuthedHHidRouteWithChildren
+}
+
+const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedAccountRoute: AuthedAccountRoute,
+  AuthedWelcomeRoute: AuthedWelcomeRoute,
+  AuthedHHidRoute: AuthedHHidRouteWithChildren,
+}
+
+const AuthedRouteWithChildren =
+  AuthedRoute._addFileChildren(AuthedRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthedRoute: AuthedRouteWithChildren,
+  LoginRoute: LoginRoute,
+  InviteCodeRoute: InviteCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

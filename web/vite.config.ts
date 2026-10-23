@@ -21,12 +21,6 @@ export default defineConfig({
     plugins: ["react", "typescript", "oxc"],
     rules: {
       "react/rules-of-hooks": "error",
-      "react/only-export-components": [
-        "warn",
-        {
-          allowConstantExport: true,
-        },
-      ],
       "vite-plus/prefer-vite-plus-imports": "error",
     },
     options: {
