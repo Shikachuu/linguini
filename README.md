@@ -20,6 +20,8 @@ mise pins Node and pnpm next to uv; run `pnpm -C web install` once. `mise run de
 
 `mise run check` runs ruff, ty, pytest, `vp check` (Oxlint, Oxfmt, TypeScript), `vp test`, and fails when the generated API client is stale. `mise run fmt` fixes formatting and lint findings in both. After changing an API route or model, run `mise run gen` to regenerate `web/openapi.json` and the typed client in `web/src/api/gen/`.
 
+`mise run e2e` builds the web app and runs the browser tests in `tests/e2e/` with Playwright and Chromium. Each test starts the API in-process on a random port with a scripted model and a fake Google and Apple sign-in page, so no model server or real accounts are needed. A failing test leaves a trace in `test-results/`; open it with `uv run playwright show-trace`. The plain `pytest` run skips these tests.
+
 ### Testing Sign in with Apple locally
 
 Google login works on `http://localhost:8000`. Apple rejects `localhost` and IP addresses as return URLs, so local Apple testing goes through a Cloudflare named tunnel on a hostname you own. On the free plan, the domain's DNS must be on Cloudflare.

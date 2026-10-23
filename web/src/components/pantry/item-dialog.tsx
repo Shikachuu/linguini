@@ -125,7 +125,11 @@ function ItemForm({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: 
           rows={2}
         />
       </div>
-      {error && <p className="text-destructive text-sm">{errorMessage(error)}</p>}
+      {error && (
+        <p role="alert" className="text-destructive text-sm">
+          {errorMessage(error)}
+        </p>
+      )}
       <DialogFooter>
         <Button type="submit" disabled={pending}>
           {item ? "Save" : "Add"}

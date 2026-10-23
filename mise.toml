@@ -50,3 +50,11 @@ if [[ -n "${LINGUINI_DEV_TUNNEL:-}" ]]; then
 fi
 uv run fastapi dev --entrypoint linguini.main:app
 """
+
+[tasks.e2e]
+description = "Build the web app and run the browser end-to-end tests"
+run = [
+  "pnpm -C web exec vp build",
+  "uv run playwright install chromium",
+  "uv run pytest tests/e2e --tracing retain-on-failure --output test-results",
+]

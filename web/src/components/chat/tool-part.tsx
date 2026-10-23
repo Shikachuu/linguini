@@ -26,7 +26,7 @@ export function ToolPart({ hid, part }: { hid: string; part: ToolUIPart | Dynami
         <ToolHeader title={toolTitle(name)} type={part.type} state={part.state} />
       )}
       {lines && (
-        <ul className="grid gap-1.5 px-3 pb-3 text-sm">
+        <ul aria-label={toolTitle(name)} className="grid gap-1.5 px-3 pb-3 text-sm">
           {lines.map((line, index) => (
             <li key={line.event_id ?? index} className="flex items-center gap-2">
               {line.ok ? (
