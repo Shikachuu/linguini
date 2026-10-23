@@ -66,3 +66,11 @@ describe("changeLines", () => {
     expect(changeLines({ undone: 2, events: [] })).toBeNull();
   });
 });
+
+describe("chatErrorMessage with odd bodies", () => {
+  it("tolerates non-object entries in a detail list", () => {
+    expect(chatErrorMessage(new Error('{"detail":[null,"x",{"msg":"bad"}]}'))).toBe(
+      'null; "x"; bad',
+    );
+  });
+});

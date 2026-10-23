@@ -10,20 +10,22 @@ export class ApiError extends Error {
 
 const SAFE_METHODS = new Set(["GET", "HEAD"]);
 
+export function detailOf(body: unknown): string | undefined {
+  if (!body || typeof body !== "object" || !("detail" in body)) return undefined;
+  const { detail } = body;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail))
+    return detail
+      .map((d: unknown) =>
+        d && typeof d === "object" && "msg" in d ? String(d.msg) : JSON.stringify(d),
+      )
+      .join("; ");
+  return undefined;
+}
+
 async function errorDetail(response: Response): Promise<string> {
-  try {
-    const body: unknown = await response.json();
-    if (body && typeof body === "object" && "detail" in body) {
-      const { detail } = body;
-      if (typeof detail === "string") return detail;
-      if (Array.isArray(detail)) {
-        return detail.map((d: { msg?: string }) => d.msg ?? JSON.stringify(d)).join("; ");
-      }
-    }
-  } catch {
-    // not JSON
-  }
-  return response.statusText || `HTTP ${response.status}`;
+  const body: unknown = await response.json().catch(() => undefined);
+  return detailOf(body) ?? (response.statusText || `HTTP ${response.status}`);
 }
 
 export function apiHeaders(method: string, headers?: HeadersInit): Headers {

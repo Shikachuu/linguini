@@ -9,18 +9,20 @@ export interface RouterContext {
 }
 
 export function createAppRouter(history?: RouterHistory) {
-  const meKey = hashKey(getMeQueryKey());
-  const onError = (error: unknown) => {
+  const sessionQueryHash = hashKey(getMeQueryKey());
+  const redirectToLoginOnUnauthorized = (error: unknown) => {
     if (!isUnauthorized(error) || router.state.location.pathname === "/login") return;
     queryClient.clear();
     void router.navigate({ to: "/login", search: { return_to: router.state.location.href } });
   };
   const queryClient = new QueryClient({
-    // Route guards redirect on a 401 from the session query themselves, keeping the target URL and invite code.
     queryCache: new QueryCache({
-      onError: (error, query) => query.queryHash !== meKey && onError(error),
+      onError: (error, query) => {
+        const routeGuardsHandleIt = query.queryHash === sessionQueryHash;
+        if (!routeGuardsHandleIt) redirectToLoginOnUnauthorized(error);
+      },
     }),
-    mutationCache: new MutationCache({ onError }),
+    mutationCache: new MutationCache({ onError: redirectToLoginOnUnauthorized }),
     defaultOptions: {
       queries: { staleTime: 30_000, retry: (count, error) => !isUnauthorized(error) && count < 2 },
     },

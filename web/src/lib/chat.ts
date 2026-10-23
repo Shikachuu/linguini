@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import { detailOf } from "@/api/fetcher";
 
 export interface ChangeLine {
   ok: boolean;
@@ -49,15 +50,16 @@ export function mergeAssistantMessages(messages: UIMessage[]): UIMessage[] {
   return merged;
 }
 
-export function chatErrorMessage(error: Error): string {
+function parseJson(text: string): unknown {
   try {
-    const body: unknown = JSON.parse(error.message);
-    if (body && typeof body === "object" && "detail" in body && typeof body.detail === "string")
-      return body.detail;
+    return JSON.parse(text);
   } catch {
-    // not a JSON error body
+    return undefined;
   }
-  return error.message || "The reply failed.";
+}
+
+export function chatErrorMessage(error: Error): string {
+  return detailOf(parseJson(error.message)) ?? (error.message || "The reply failed.");
 }
 
 function isChangeLine(value: unknown): value is ChangeLine {

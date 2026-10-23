@@ -4,7 +4,7 @@ Self-hosted, food-focused household AI chat. A household shares a pantry invento
 
 Backend: FastAPI, Pydantic AI, SQLite. Works with any OpenAI-compatible model server (OpenRouter, vLLM, Ollama, llama.cpp). Ships as one distroless container that also serves the web app.
 
-Web SPA and mobile app: pending. The API is designed for a React SPA served from the same origin (cookie session) and a native app (bearer session).
+Web app: a React SPA in `web/`, built with Vite+ and served by the backend from the same origin (cookie session). Mobile app: pending; the API supports a native app with a bearer session.
 
 ## Run locally
 
@@ -16,7 +16,50 @@ set -a; . ./.env; set +a
 mise run dev
 ```
 
-`mise run check` runs ruff, ty, and pytest. Google login works on `http://localhost:8000`; Apple does not allow localhost redirects, so test Apple behind an HTTPS tunnel with a real domain.
+mise pins Node and pnpm next to uv; run `pnpm -C web install` once. `mise run dev` builds the web app, rebuilds it on every change, and serves it together with the API on `http://localhost:8000`. There is no hot reload; refresh the page after a rebuild.
+
+`mise run check` runs ruff, ty, pytest, `vp check` (Oxlint, Oxfmt, TypeScript), `vp test`, and fails when the generated API client is stale. `mise run fmt` fixes formatting and lint findings in both. After changing an API route or model, run `mise run gen` to regenerate `web/openapi.json` and the typed client in `web/src/api/gen/`.
+
+### Testing Sign in with Apple locally
+
+Google login works on `http://localhost:8000`. Apple rejects `localhost` and IP addresses as return URLs, so local Apple testing goes through a Cloudflare named tunnel on a hostname you own. On the free plan, the domain's DNS must be on Cloudflare.
+
+1. In the Apple Developer portal, create a dev-only primary App ID with Sign in with Apple and its own key. A separate App ID keeps dev consent and server notifications away from production, where a revoked consent deletes Apple-only accounts.
+2. Under that App ID, create a Services ID with domain `linguini-dev.<domain>` and return URL `https://linguini-dev.<domain>/api/auth/apple/callback`.
+3. Create the tunnel once (`cloudflared` is pinned in `mise.toml`):
+
+   ```sh
+   cloudflared tunnel login
+   cloudflared tunnel create linguini-dev
+   cloudflared tunnel route dns linguini-dev linguini-dev.<domain>
+   ```
+
+   with `~/.cloudflared/config.yml`:
+
+   ```yaml
+   tunnel: <tunnel id>
+   credentials-file: /home/<you>/.cloudflared/<tunnel id>.json
+   ingress:
+     - hostname: linguini-dev.<domain>
+       service: http://127.0.0.1:8000
+     - service: http_status:404
+   ```
+
+4. Put the dev settings in the gitignored `mise.local.toml`:
+
+   ```toml
+   [env]
+   LINGUINI_PUBLIC_URL = "https://linguini-dev.<domain>"
+   LINGUINI_DEV_TUNNEL = "linguini-dev"
+   LINGUINI_APPLE_TEAM_ID = "..."
+   LINGUINI_APPLE_KEY_ID = "..."
+   LINGUINI_APPLE_SERVICES_ID = "..."
+   LINGUINI_APPLE_PRIVATE_KEY = "file:/path/to/AuthKey.p8"
+   ```
+
+5. Add `https://linguini-dev.<domain>/api/auth/google/callback` to the Google client too, because `PUBLIC_URL` sets both redirect URIs.
+
+With `LINGUINI_DEV_TUNNEL` set, `mise run dev` also runs the tunnel. Browse `https://linguini-dev.<domain>`, not localhost, or the login cookies land on the wrong origin. The dev server is public while the tunnel runs. Keep Cloudflare Bot Fight Mode off for the zone; it can block Apple's server-to-server notifications.
 
 ## Run with Docker
 
@@ -68,9 +111,9 @@ Accounts are never linked by email. A signed-in user can link a second provider 
 
 Kifli's identity server only allows `localhost` redirect URIs for dynamically registered clients (see `docs/kifli-spike.md`), so the connection is a paste flow:
 
-1. In a household, call `POST /api/households/{id}/kifli/connect` (the web app will have a button). You get a link.
+1. In the web app, open Settings and press Connect under Kifli (`POST /api/households/{id}/kifli/connect`). The Kifli sign-in page opens in a new tab.
 2. Open the link and sign in to Kifli. The browser then tries to open `http://localhost:3334/oauth/callback?...`, which does not load.
-3. Copy that whole address and paste it into the app (`POST .../kifli/callback`).
+3. Copy that whole address and paste it into the field in Settings (`POST .../kifli/callback`).
 
 Tokens are stored encrypted per household and refreshed automatically. Any member can connect or disconnect. The agent can search products, read orders, and edit the cart; checkout happens on kifli.hu.
 

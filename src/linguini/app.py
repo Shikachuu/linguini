@@ -68,7 +68,7 @@ class ConfigOut(BaseModel):
 
 
 def operation_id(route: APIRoute) -> str:
-    """Name OpenAPI operations after their handler so generated clients stay readable.
+    """Name OpenAPI operations after their handler.
 
     Returns:
         The route's handler name.
