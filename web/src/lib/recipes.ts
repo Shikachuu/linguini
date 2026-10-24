@@ -7,3 +7,15 @@ export const invalidateRecipes = async (queryClient: QueryClient, hid: string, r
     rid === undefined ? undefined : queryClient.invalidateQueries({ queryKey: getGetRecipeQueryKey(hid, rid) }),
   ])
 }
+
+export const keyedSteps = (steps: string[]): { key: string; step: string }[] => {
+  const seen = new Map<string, number>()
+
+  return steps.map((step) => {
+    const occurrence = seen.get(step) ?? 0
+
+    seen.set(step, occurrence + 1)
+
+    return { key: `${step}#${occurrence}`, step }
+  })
+}

@@ -19,7 +19,7 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
-import type {
+import {
   ConfigOut,
   Health200
 } from '../../model';
@@ -65,7 +65,8 @@ export const health = async ( options?: Parameters<typeof apiFetch>[1]): Promise
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: Health200
   }
 );}
 
@@ -165,7 +166,8 @@ export const config = async ( options?: Parameters<typeof apiFetch>[1]): Promise
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: ConfigOut
   }
 );}
 

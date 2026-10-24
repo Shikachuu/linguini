@@ -49,24 +49,24 @@ describe("routing", () => {
   })
 
   it("opens the last used household for signed-in users", async () => {
-    localStorage.setItem("linguini:last-household", "h2")
+    localStorage.setItem("linguini:last-household", "00000000-0000-4000-8000-0000000000a2")
     server.use(
       http.get("*/api/me", () =>
         HttpResponse.json({
-          id: "u1",
+          id: "00000000-0000-4000-8000-0000000000b1",
           display_name: "Alice",
           identities: [],
           households: [
-            { id: "h1", name: "Home" },
-            { id: "h2", name: "Cabin" },
+            { id: "00000000-0000-4000-8000-0000000000a1", name: "Home" },
+            { id: "00000000-0000-4000-8000-0000000000a2", name: "Cabin" },
           ],
         }),
       ),
-      http.get("*/api/households/h2/threads", () => HttpResponse.json([])),
+      http.get("*/api/households/00000000-0000-4000-8000-0000000000a2/threads", () => HttpResponse.json([])),
     )
     const router = renderAt("/")
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/h/h2/chat")
+      expect(router.state.location.pathname).toBe("/h/00000000-0000-4000-8000-0000000000a2/chat")
     })
     expect(await screen.findByText("No chats yet.")).toBeInTheDocument()
   })

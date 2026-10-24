@@ -23,12 +23,14 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
-import type {
-  HTTPValidationError,
+import {
   MeOut,
-  NativeIn,
   NonceOut,
   SessionOut
+} from '../../model';
+import type {
+  HTTPValidationError,
+  NativeIn
 } from '../../model';
 
 import { apiFetch } from '../../../fetcher';
@@ -73,7 +75,8 @@ export const issueNonce = async ( options?: Parameters<typeof apiFetch>[1]): Pro
     ...options,
     method: 'POST'
 
-
+    ,
+    schema: NonceOut
   }
 );}
 
@@ -165,7 +168,8 @@ return apiFetch<SessionOut>(getNativeLoginUrl(provider),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(nativeIn)
+    body: JSON.stringify(nativeIn),
+    schema: SessionOut
   }
 );}
 
@@ -313,7 +317,8 @@ export const me = async ( options?: Parameters<typeof apiFetch>[1]): Promise<MeO
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: MeOut
   }
 );}
 

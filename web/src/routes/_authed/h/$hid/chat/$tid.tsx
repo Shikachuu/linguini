@@ -1,9 +1,9 @@
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import type { UIMessage } from "ai"
+import { validateUIMessages } from "ai"
 import { ArrowLeftIcon, Undo2Icon } from "lucide-react"
 import { toast } from "sonner"
-import { useGetThread } from "@/api/gen/endpoints/chat/chat"
+import { getGetThreadQueryKey, getThread } from "@/api/gen/endpoints/chat/chat"
 import { useUndoLastTurn } from "@/api/gen/endpoints/inventory/inventory"
 import { ChatView } from "@/components/chat/chat-view"
 import { Button } from "@/components/ui/button"
@@ -12,13 +12,23 @@ import { mergeAssistantMessages } from "@/lib/chat"
 import { errorMessage } from "@/lib/errors"
 import { invalidatePantry } from "@/lib/pantry"
 
+const useThread = (hid: string, tid: string) =>
+  useQuery({
+    queryKey: getGetThreadQueryKey(hid, tid),
+    queryFn: async ({ signal }) => {
+      const detail = await getThread(hid, tid, { signal })
+      const messages = await validateUIMessages({ messages: detail.messages })
+
+      return { title: detail.title, messages: mergeAssistantMessages(messages) }
+    },
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  })
+
 const Thread = () => {
   const { hid, tid } = Route.useParams()
   const queryClient = useQueryClient()
-
-  const thread = useGetThread(hid, tid, {
-    query: { staleTime: Infinity, refetchOnWindowFocus: false },
-  })
+  const thread = useThread(hid, tid)
 
   const undoTurn = useUndoLastTurn({
     mutation: {
@@ -52,14 +62,7 @@ const Thread = () => {
       </header>
       {thread.isPending && <Skeleton className="m-4 h-24" />}
       {thread.isError && <p className="p-4 text-sm text-destructive">{errorMessage(thread.error)}</p>}
-      {thread.data && (
-        <ChatView
-          key={tid}
-          hid={hid}
-          tid={tid}
-          initialMessages={mergeAssistantMessages(thread.data.messages as unknown as UIMessage[])}
-        />
-      )}
+      {thread.data && <ChatView key={tid} hid={hid} tid={tid} initialMessages={thread.data.messages} />}
     </div>
   )
 }

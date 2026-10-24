@@ -23,12 +23,16 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
-import type {
-  HTTPValidationError,
+import {
   ThreadDetail,
-  ThreadIn,
   ThreadOut
 } from '../../model';
+import type {
+  HTTPValidationError,
+  ThreadIn
+} from '../../model';
+
+import * as zod from 'zod';
 
 import { apiFetch } from '../../../fetcher';
 import type { ErrorType } from '../../../fetcher';
@@ -72,7 +76,8 @@ export const listThreads = async (householdId: string, options?: Parameters<type
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: zod.array(ThreadOut)
   }
 );}
 
@@ -188,7 +193,8 @@ return apiFetch<ThreadOut>(getCreateThreadUrl(householdId),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(threadIn)
+    body: JSON.stringify(threadIn),
+    schema: ThreadOut
   }
 );}
 
@@ -264,7 +270,8 @@ export const getThread = async (householdId: string,
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: ThreadDetail
   }
 );}
 
@@ -388,7 +395,8 @@ return apiFetch<ThreadOut>(getRenameThreadUrl(householdId,threadId),
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(threadIn)
+    body: JSON.stringify(threadIn),
+    schema: ThreadOut
   }
 );}
 

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test"
+import { z } from "zod"
 import { ApiError, apiFetch } from "./fetcher"
+
+const okSchema = z.object({ ok: z.boolean() })
 
 const stubFetch = (response: Response) => {
   const spy = vi.fn<typeof fetch>().mockResolvedValue(response)
@@ -19,9 +22,20 @@ afterEach(() => {
 describe("apiFetch", () => {
   it("omits the CSRF header on GET", async () => {
     const spy = stubFetch(Response.json({ ok: true }))
-    await expect(apiFetch("/api/me")).resolves.toEqual({ ok: true })
+    await expect(apiFetch("/api/me", { schema: okSchema })).resolves.toEqual({ ok: true })
     expect(sentHeaders(spy).has("X-Requested-With")).toBe(false)
     expect(spy.mock.calls[0]?.[1]?.credentials).toBe("same-origin")
+    expect(spy.mock.calls[0]?.[1]).not.toHaveProperty("schema")
+  })
+
+  it("rejects a response that does not match the schema", async () => {
+    stubFetch(Response.json({ ok: "yes" }))
+    await expect(apiFetch("/api/me", { schema: okSchema })).rejects.toBeInstanceOf(z.ZodError)
+  })
+
+  it("rejects a body when the endpoint declares none", async () => {
+    stubFetch(Response.json({ ok: true }))
+    await expect(apiFetch("/api/me", { method: "DELETE" })).rejects.toBeInstanceOf(z.ZodError)
   })
 
   it("sends the CSRF header on mutations", async () => {

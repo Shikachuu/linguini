@@ -23,16 +23,20 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
-import type {
+import {
   EventOut,
+  ItemOut
+} from '../../model';
+import type {
   HTTPValidationError,
   ItemIn,
-  ItemOut,
   ItemPatch,
   ListEventsParams,
   ListItemsParams,
   UndoLastTurnParams
 } from '../../model';
+
+import * as zod from 'zod';
 
 import { apiFetch } from '../../../fetcher';
 import type { ErrorType } from '../../../fetcher';
@@ -85,7 +89,8 @@ export const listItems = async (householdId: string,
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: zod.array(ItemOut)
   }
 );}
 
@@ -210,7 +215,8 @@ return apiFetch<ItemOut>(getAddItemUrl(householdId),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(itemIn)
+    body: JSON.stringify(itemIn),
+    schema: ItemOut
   }
 );}
 
@@ -306,7 +312,8 @@ return apiFetch<ItemOut>(getPatchItemUrl(householdId,itemId),
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(itemPatch)
+    body: JSON.stringify(itemPatch),
+    schema: ItemOut
   }
 );}
 
@@ -465,7 +472,8 @@ export const listEvents = async (householdId: string,
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: zod.array(EventOut)
   }
 );}
 
@@ -574,7 +582,8 @@ export const undoEvent = async (householdId: string,
     ...options,
     method: 'POST'
 
-
+    ,
+    schema: EventOut
   }
 );}
 
@@ -657,7 +666,8 @@ export const undoLastTurn = async (householdId: string,
     ...options,
     method: 'POST'
 
-
+    ,
+    schema: zod.array(EventOut)
   }
 );}
 

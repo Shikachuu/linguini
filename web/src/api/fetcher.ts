@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z, type ZodType } from "zod"
 
 export class ApiError extends Error {
   readonly status: number
@@ -29,9 +29,7 @@ export const detailOf = (text: string): string | undefined => {
   }
 }
 
-const errorDetail = async (response: Response): Promise<string> => {
-  return detailOf(await response.text()) ?? (response.statusText || `HTTP ${response.status}`)
-}
+export type ApiFetchInit<T> = RequestInit & { schema?: ZodType<T> }
 
 export const apiHeaders = (method: string, headers?: HeadersInit): Headers => {
   const result = new Headers(headers)
@@ -41,22 +39,25 @@ export const apiHeaders = (method: string, headers?: HeadersInit): Headers => {
   return result
 }
 
-export const apiFetch = async <T>(url: string, init: RequestInit = {}): Promise<T> => {
-  const method = init.method ?? "GET"
+export const apiFetch = async <T>(url: string, init: ApiFetchInit<T> = {}): Promise<T> => {
+  const { schema, ...request } = init
+  const method = request.method ?? "GET"
 
   const response = await fetch(url, {
-    ...init,
-    headers: apiHeaders(method, init.headers),
+    ...request,
+    headers: apiHeaders(method, request.headers),
     credentials: "same-origin",
   })
 
-  if (!response.ok) throw new ApiError(response.status, await errorDetail(response))
-
   const text = await response.text()
-  const body: unknown = text === "" ? undefined : JSON.parse(text)
 
-  // SAFETY: orval passes the OpenAPI response schema of this endpoint as T, and FastAPI serializes the response through that schema.
-  return body as T
+  if (!response.ok) {
+    throw new ApiError(response.status, detailOf(text) ?? (response.statusText || `HTTP ${response.status}`))
+  }
+
+  const body = schema ?? z.custom<T>((value) => value === undefined)
+
+  return body.parse(text === "" ? undefined : JSON.parse(text))
 }
 
 export type ErrorType<_E> = ApiError

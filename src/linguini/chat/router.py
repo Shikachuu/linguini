@@ -102,7 +102,8 @@ async def get_thread(household: MemberHousehold, thread_id: uuid.UUID, session: 
     runs = await history.stored_runs(session, thread.id, include_failed=True)
     ui = VercelAIAdapter.dump_messages(history.thread_messages(runs), sdk_version=AI_SDK_VERSION)
     return ThreadDetail(
-        **_thread_out(thread).model_dump(), messages=[m.model_dump(mode="json", by_alias=True) for m in ui]
+        **_thread_out(thread).model_dump(),
+        messages=[m.model_dump(mode="json", by_alias=True, exclude_none=True) for m in ui],
     )
 
 

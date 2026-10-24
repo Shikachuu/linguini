@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { errorMessage } from "@/lib/errors"
 import { formatQuantity } from "@/lib/format"
-import { invalidateRecipes } from "@/lib/recipes"
+import { invalidateRecipes, keyedSteps } from "@/lib/recipes"
 
 const RecipeView = () => {
   const { hid, rid } = Route.useParams()
@@ -87,8 +87,8 @@ const RecipeView = () => {
           <section>
             <h2 className="mb-2 font-medium">Steps</h2>
             <ol className="grid list-decimal gap-2 pl-5 text-sm">
-              {r.steps.map((step, index) => (
-                <li key={index}>{step}</li>
+              {keyedSteps(r.steps).map(({ key, step }) => (
+                <li key={key}>{step}</li>
               ))}
             </ol>
           </section>

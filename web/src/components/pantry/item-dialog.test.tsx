@@ -9,7 +9,7 @@ import { renderWithClient } from "@/test/render"
 import { server } from "@/test/server"
 
 const ITEM: ItemOut = {
-  id: "i1",
+  id: "00000000-0000-4000-8000-0000000000c1",
   name: "tej",
   quantity: 2,
   unit: "l",
@@ -25,13 +25,13 @@ describe("ItemDialog", () => {
   it("adds an item with an expiry date", async () => {
     let sent: unknown
     server.use(
-      http.post("*/api/households/h1/items", async ({ request }) => {
+      http.post("*/api/households/00000000-0000-4000-8000-0000000000a1/items", async ({ request }) => {
         sent = await request.json()
 
         return HttpResponse.json(ITEM, { status: 201 })
       }),
     )
-    renderWithClient(<ItemDialog hid="h1" trigger={<Button>Add</Button>} />)
+    renderWithClient(<ItemDialog hid="00000000-0000-4000-8000-0000000000a1" trigger={<Button>Add</Button>} />)
     await userEvent.click(screen.getByRole("button", { name: "Add" }))
     await userEvent.type(screen.getByLabelText("Name"), "tej")
     await userEvent.type(screen.getByLabelText("Amount to add"), "2")
@@ -52,11 +52,14 @@ describe("ItemDialog", () => {
 
   it("shows the server's reason when the unit conflicts", async () => {
     server.use(
-      http.patch("*/api/households/h1/items/i1", () =>
-        HttpResponse.json({ detail: "tej is measured by volume, not mass" }, { status: 409 }),
+      http.patch(
+        "*/api/households/00000000-0000-4000-8000-0000000000a1/items/00000000-0000-4000-8000-0000000000c1",
+        () => HttpResponse.json({ detail: "tej is measured by volume, not mass" }, { status: 409 }),
       ),
     )
-    renderWithClient(<ItemDialog hid="h1" item={ITEM} trigger={<Button>Edit</Button>} />)
+    renderWithClient(
+      <ItemDialog hid="00000000-0000-4000-8000-0000000000a1" item={ITEM} trigger={<Button>Edit</Button>} />,
+    )
     await userEvent.click(screen.getByRole("button", { name: "Edit" }))
     expect(screen.getByLabelText("Notes")).toHaveValue("opened")
     await userEvent.clear(screen.getByLabelText("Unit"))

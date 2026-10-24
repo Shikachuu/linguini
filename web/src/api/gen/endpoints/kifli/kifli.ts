@@ -23,10 +23,12 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
+import {
+  ConnectOut,
+  ConnectionOut
+} from '../../model';
 import type {
   CallbackIn,
-  ConnectOut,
-  ConnectionOut,
   HTTPValidationError
 } from '../../model';
 
@@ -72,7 +74,8 @@ export const connectionStatus = async (householdId: string, options?: Parameters
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: ConnectionOut
   }
 );}
 
@@ -247,7 +250,8 @@ export const connect = async (householdId: string, options?: Parameters<typeof a
     ...options,
     method: 'POST'
 
-
+    ,
+    schema: ConnectOut
   }
 );}
 
@@ -342,7 +346,8 @@ return apiFetch<ConnectionOut>(getFinishUrl(householdId),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(callbackIn)
+    body: JSON.stringify(callbackIn),
+    schema: ConnectionOut
   }
 );}
 

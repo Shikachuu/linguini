@@ -23,13 +23,17 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
-import type {
-  HTTPValidationError,
-  HouseholdIn,
+import {
   HouseholdOut,
   InviteOut,
   MemberOut
 } from '../../model';
+import type {
+  HTTPValidationError,
+  HouseholdIn
+} from '../../model';
+
+import * as zod from 'zod';
 
 import { apiFetch } from '../../../fetcher';
 import type { ErrorType } from '../../../fetcher';
@@ -73,7 +77,8 @@ export const listHouseholds = async ( options?: Parameters<typeof apiFetch>[1]):
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: zod.array(HouseholdOut)
   }
 );}
 
@@ -188,7 +193,8 @@ return apiFetch<HouseholdOut>(getCreateHouseholdUrl(),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(householdIn)
+    body: JSON.stringify(householdIn),
+    schema: HouseholdOut
   }
 );}
 
@@ -262,7 +268,8 @@ export const getHousehold = async (householdId: string, options?: Parameters<typ
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: HouseholdOut
   }
 );}
 
@@ -378,7 +385,8 @@ return apiFetch<HouseholdOut>(getRenameHouseholdUrl(householdId),
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(householdIn)
+    body: JSON.stringify(householdIn),
+    schema: HouseholdOut
   }
 );}
 
@@ -526,7 +534,8 @@ export const listMembers = async (householdId: string, options?: Parameters<type
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: zod.array(MemberOut)
   }
 );}
 
@@ -703,7 +712,8 @@ export const createInvite = async (householdId: string, options?: Parameters<typ
     ...options,
     method: 'POST'
 
-
+    ,
+    schema: InviteOut
   }
 );}
 
@@ -777,7 +787,8 @@ export const acceptInvite = async (code: string, options?: Parameters<typeof api
     ...options,
     method: 'POST'
 
-
+    ,
+    schema: HouseholdOut
   }
 );}
 

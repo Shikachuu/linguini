@@ -23,14 +23,18 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
-import type {
-  CookIn,
+import {
   CookResult,
-  HTTPValidationError,
-  ListRecipesParams,
-  RecipeData,
   RecipeOut
 } from '../../model';
+import type {
+  CookIn,
+  HTTPValidationError,
+  ListRecipesParams,
+  RecipeData
+} from '../../model';
+
+import * as zod from 'zod';
 
 import { apiFetch } from '../../../fetcher';
 import type { ErrorType } from '../../../fetcher';
@@ -83,7 +87,8 @@ export const listRecipes = async (householdId: string,
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: zod.array(RecipeOut)
   }
 );}
 
@@ -205,7 +210,8 @@ return apiFetch<RecipeOut>(getCreateRecipeUrl(householdId),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(recipeData)
+    body: JSON.stringify(recipeData),
+    schema: RecipeOut
   }
 );}
 
@@ -281,7 +287,8 @@ export const getRecipe = async (householdId: string,
     ...options,
     method: 'GET'
 
-
+    ,
+    schema: RecipeOut
   }
 );}
 
@@ -405,7 +412,8 @@ return apiFetch<RecipeOut>(getReplaceRecipeUrl(householdId,recipeId),
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(recipeData)
+    body: JSON.stringify(recipeData),
+    schema: RecipeOut
   }
 );}
 
@@ -572,7 +580,8 @@ return apiFetch<CookResult>(getCookRecipeUrl(householdId,recipeId),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(cookInNull)
+    body: JSON.stringify(cookInNull),
+    schema: CookResult
   }
 );}
 
