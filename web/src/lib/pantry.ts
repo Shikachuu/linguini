@@ -11,11 +11,11 @@ const EXPIRY_WINDOW_DAYS = 3
 
 const OLD_PURCHASE_DAYS = 7
 
-export const invalidatePantry = (queryClient: QueryClient, hid: string): Promise<void> => {
-  return Promise.all([
+export const invalidatePantry = async (queryClient: QueryClient, hid: string): Promise<void> => {
+  await Promise.all([
     queryClient.invalidateQueries({ queryKey: getListItemsQueryKey(hid) }),
     queryClient.invalidateQueries({ queryKey: getListEventsQueryKey(hid) }),
-  ]).then(() => {})
+  ])
 }
 
 export type Freshness = { tone: "bad" | "warn"; label: string } | null
@@ -23,7 +23,7 @@ export type Freshness = { tone: "bad" | "warn"; label: string } | null
 export const freshness = (item: ItemOut, now: Date = new Date()): Freshness => {
   if (item.quantity <= 0) return null
 
-  if (item.expires_at) {
+  if (item.expires_at !== null) {
     const daysLeft = -daysSince(item.expires_at, now)
 
     if (daysLeft < 0) return { tone: "bad", label: `expired ${-daysLeft}d ago` }
@@ -33,7 +33,7 @@ export const freshness = (item: ItemOut, now: Date = new Date()): Freshness => {
     return null
   }
 
-  if (item.last_purchased_at) {
+  if (item.last_purchased_at !== null) {
     const age = daysSince(item.last_purchased_at, now)
 
     if (age >= OLD_PURCHASE_DAYS) return { tone: "warn", label: `bought ${age}d ago` }
@@ -43,7 +43,7 @@ export const freshness = (item: ItemOut, now: Date = new Date()): Freshness => {
 }
 
 export const dateInputValue = (value: string | null): string => {
-  return value ? value.slice(0, 10) : ""
+  return value === null ? "" : value.slice(0, 10)
 }
 
 export const dateFromInput = (value: string): string | null => {

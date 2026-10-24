@@ -7,7 +7,11 @@ import { createAppRouter } from "./router"
 
 const router = createAppRouter()
 
-createRoot(document.querySelector("#root")!).render(
+const root = document.querySelector("#root")
+
+if (root === null) throw new Error("index.html has no #root element")
+
+createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={router.options.context.queryClient}>
       <RouterProvider router={router} />

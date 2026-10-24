@@ -11,8 +11,8 @@ export type RouterContext = {
 export const createAppRouter = (history?: RouterHistory) => {
   const sessionQueryHash = hashKey(getMeQueryKey())
 
-  const redirectToLoginOnUnauthorized = (error: unknown) => {
-    if (!isUnauthorized(error) || router.state.location.pathname === "/login") return
+  const redirectToLoginOnUnauthorized = (cause: unknown) => {
+    if (!isUnauthorized(cause) || router.state.location.pathname === "/login") return
     queryClient.clear()
     void router.navigate({ to: "/login", search: { return_to: router.state.location.href } })
   }

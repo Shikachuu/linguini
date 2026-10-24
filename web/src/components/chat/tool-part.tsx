@@ -6,7 +6,7 @@ import { changeLines, toolTitle } from "@/lib/chat"
 
 export const ToolPart = ({ hid, part }: { hid: string; part: ToolUIPart | DynamicToolUIPart }) => {
   const name = getToolName(part)
-  const lines = part.state === "output-available" ? changeLines(part.output) : null
+  const lines = part.state === "output-available" ? changeLines.safeParse(part.output).data : undefined
 
   return (
     <Tool className="mb-0">

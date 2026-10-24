@@ -63,10 +63,10 @@ describe("chatErrorMessage", () => {
 describe("changeLines", () => {
   it("reads batch results and single results", () => {
     const line = { ok: true, message: "rizs: 0 kg -> 1 kg", event_id: "e1" }
-    expect(changeLines({ results: [line], skipped_duplicate_order: false })).toEqual([line])
-    expect(changeLines(line)).toEqual([line])
-    expect(changeLines("Removed rizs.")).toBeNull()
-    expect(changeLines({ undone: 2, events: [] })).toBeNull()
+    expect(changeLines.safeParse({ results: [line], skipped_duplicate_order: false }).data).toEqual([line])
+    expect(changeLines.safeParse(line).data).toEqual([line])
+    expect(changeLines.safeParse("Removed rizs.").data).toBeUndefined()
+    expect(changeLines.safeParse({ undone: 2, events: [] }).data).toBeUndefined()
   })
 })
 

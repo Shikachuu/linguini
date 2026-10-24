@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router"
+import { cn } from "cn"
 import { ThreadList } from "@/components/chat/thread-list"
-import { cn } from "@/lib/utils"
 
 const ChatLayout = () => {
   const { hid } = Route.useParams()

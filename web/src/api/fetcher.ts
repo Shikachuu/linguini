@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -10,24 +12,25 @@ export class ApiError extends Error {
 
 const SAFE_METHODS = new Set(["GET", "HEAD"])
 
-export const detailOf = (body: unknown): string | undefined => {
-  if (!body || typeof body !== "object" || !("detail" in body)) return undefined
-  const { detail } = body
+const detailItem = z.union([
+  z.object({ msg: z.string() }).transform((item) => item.msg),
+  z.json().transform((value) => JSON.stringify(value)),
+])
 
-  if (typeof detail === "string") return detail
+const errorBody = z.object({
+  detail: z.union([z.string(), z.array(detailItem).transform((items) => items.join("; "))]),
+})
 
-  if (Array.isArray(detail))
-    return detail
-      .map((d: unknown) => (d && typeof d === "object" && "msg" in d ? String(d.msg) : JSON.stringify(d)))
-      .join("; ")
-
-  return undefined
+export const detailOf = (text: string): string | undefined => {
+  try {
+    return errorBody.safeParse(JSON.parse(text)).data?.detail
+  } catch {
+    return undefined
+  }
 }
 
 const errorDetail = async (response: Response): Promise<string> => {
-  const body: unknown = await response.json().catch(() => {})
-
-  return detailOf(body) ?? (response.statusText || `HTTP ${response.status}`)
+  return detailOf(await response.text()) ?? (response.statusText || `HTTP ${response.status}`)
 }
 
 export const apiHeaders = (method: string, headers?: HeadersInit): Headers => {
@@ -49,10 +52,11 @@ export const apiFetch = async <T>(url: string, init: RequestInit = {}): Promise<
 
   if (!response.ok) throw new ApiError(response.status, await errorDetail(response))
 
-  if (response.status === 204) return undefined as T
   const text = await response.text()
+  const body: unknown = text === "" ? undefined : JSON.parse(text)
 
-  return (text ? JSON.parse(text) : undefined) as T
+  // SAFETY: orval passes the OpenAPI response schema of this endpoint as T, and FastAPI serializes the response through that schema.
+  return body as T
 }
 
 export type ErrorType<_E> = ApiError
