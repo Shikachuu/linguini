@@ -46,7 +46,7 @@ trap 'kill $(jobs -p) 2>/dev/null' EXIT
 pnpm -C web exec vp build
 pnpm -C web exec vp build --watch &
 if [[ -n "${LINGUINI_DEV_TUNNEL:-}" ]]; then
-  cloudflared tunnel run "$LINGUINI_DEV_TUNNEL" &
+  cloudflared tunnel run --url http://127.0.0.1:8000 "$LINGUINI_DEV_TUNNEL" &
 fi
 uv run fastapi dev --entrypoint linguini.main:app
 """

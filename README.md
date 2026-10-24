@@ -35,28 +35,20 @@ Google login works on `http://localhost:8000`. Apple rejects `localhost` and IP 
    cloudflared tunnel route dns linguini-dev linguini-dev.<domain>
    ```
 
-   with `~/.cloudflared/config.yml`:
+   No `config.yml` is needed: `mise run dev` starts the tunnel with `--url http://127.0.0.1:8000`, and `cloudflared` finds the credentials in `~/.cloudflared/`. Do not add `ingress` rules to `~/.cloudflared/config.yml`; `cloudflared` refuses to start when both are set.
 
-   ```yaml
-   tunnel: <tunnel id>
-   credentials-file: /home/<you>/.cloudflared/<tunnel id>.json
-   ingress:
-     - hostname: linguini-dev.<domain>
-       service: http://127.0.0.1:8000
-     - service: http_status:404
+4. Put the dev settings in `.env`, which only the `dev` task reads:
+
+   ```sh
+   LINGUINI_PUBLIC_URL=https://linguini-dev.<domain>
+   LINGUINI_DEV_TUNNEL=linguini-dev
+   LINGUINI_APPLE_TEAM_ID=...
+   LINGUINI_APPLE_KEY_ID=...
+   LINGUINI_APPLE_SERVICES_ID=...
+   LINGUINI_APPLE_PRIVATE_KEY=file:/path/to/AuthKey.p8
    ```
 
-4. Put the dev settings in the gitignored `mise.local.toml`:
-
-   ```toml
-   [env]
-   LINGUINI_PUBLIC_URL = "https://linguini-dev.<domain>"
-   LINGUINI_DEV_TUNNEL = "linguini-dev"
-   LINGUINI_APPLE_TEAM_ID = "..."
-   LINGUINI_APPLE_KEY_ID = "..."
-   LINGUINI_APPLE_SERVICES_ID = "..."
-   LINGUINI_APPLE_PRIVATE_KEY = "file:/path/to/AuthKey.p8"
-   ```
+   Do not use `mise.local.toml` for these: its `[env]` applies to every task, including the tests.
 
 5. Add `https://linguini-dev.<domain>/api/auth/google/callback` to the Google client too, because `PUBLIC_URL` sets both redirect URIs.
 
