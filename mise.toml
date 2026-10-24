@@ -38,7 +38,7 @@ run = [
 
 [tasks.dev]
 description = "Serve the API and the continuously rebuilt web app on http://127.0.0.1:8000"
-env = { LINGUINI_STATIC_DIR = "{{config_root}}/web/dist" }
+env = { _.file = ".env", LINGUINI_STATIC_DIR = "{{config_root}}/web/dist" }
 shell = "bash -c"
 run = """
 set -euo pipefail

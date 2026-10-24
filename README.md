@@ -12,11 +12,10 @@ Web app: a React SPA in `web/`, built with Vite+ and served by the backend from 
 mise install
 mise trust
 cp .env.example .env   # fill in LINGUINI_SECRET_KEY and the model settings
-set -a; . ./.env; set +a
 mise run dev
 ```
 
-mise pins Node and pnpm next to uv; run `pnpm -C web install` once. `mise run dev` builds the web app, rebuilds it on every change, and serves it together with the API on `http://localhost:8000`. There is no hot reload; refresh the page after a rebuild.
+mise pins Node and pnpm next to uv; run `pnpm -C web install` once. `mise run dev` loads `.env`, builds the web app, rebuilds it on every change, and serves it together with the API on `http://localhost:8000`. Other tasks such as `check` and `e2e` do not read `.env`, so local settings cannot leak into the tests. There is no hot reload; refresh the page after a rebuild.
 
 `mise run check` runs ruff, ty, pytest, `vp check` (Oxlint, Oxfmt, TypeScript), `vp test`, and fails when the generated API client is stale. `mise run fmt` fixes formatting and lint findings in both. After changing an API route or model, run `mise run gen` to regenerate `web/openapi.json` and the typed client in `web/src/api/gen/`.
 
