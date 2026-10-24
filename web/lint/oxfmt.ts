@@ -18,7 +18,6 @@ export const formatter = {
   },
   sortTailwindcss: {
     functions: ["clsx", "cn", "cva", "tw", "twMerge"],
-    stylesheet: "./src/index.css",
   },
   ignorePatterns: [...ignorePatterns, "src/index.css"],
 } satisfies OxfmtConfig

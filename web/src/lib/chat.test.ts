@@ -92,6 +92,18 @@ describe("threadMessages", () => {
     expect(messages[1]?.parts).toHaveLength(2)
   })
 
+  it("accepts a stored tool call whose output is null", async () => {
+    const [message] = await threadMessages([
+      {
+        id: "a1",
+        role: "assistant",
+        parts: [{ type: "tool-list_items", toolCallId: "c1", state: "output-available", input: {}, output: null }],
+      },
+    ])
+
+    expect(message?.parts).toHaveLength(1)
+  })
+
   it("rejects messages that are not UI messages", async () => {
     await expect(threadMessages([{ id: "u1", role: "robot", parts: [] }])).rejects.toThrow("Type validation failed")
   })
