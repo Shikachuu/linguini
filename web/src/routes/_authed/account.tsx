@@ -1,37 +1,35 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeftIcon } from "lucide-react";
-import { useDeleteMe, useLogout, useMe } from "@/api/gen/endpoints/auth/auth";
-import { useConfig } from "@/api/gen/endpoints/meta/meta";
-import { Confirm } from "@/components/confirm";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { errorMessage } from "@/lib/errors";
-import { loginHref, type Provider } from "@/lib/session";
+import { useQueryClient } from "@tanstack/react-query"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { ArrowLeftIcon } from "lucide-react"
+import { useDeleteMe, useLogout, useMe } from "@/api/gen/endpoints/auth/auth"
+import { useConfig } from "@/api/gen/endpoints/meta/meta"
+import { Confirm } from "@/components/confirm"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { errorMessage } from "@/lib/errors"
+import { loginHref, type Provider } from "@/lib/session"
 
 export const Route = createFileRoute("/_authed/account")({
   component: Account,
-});
+})
 
-const PROVIDER_LABEL: Record<Provider, string> = { google: "Google", apple: "Apple" };
-const DELETE_CONFIRMATION = "delete my account";
+const PROVIDER_LABEL: Record<Provider, string> = { google: "Google", apple: "Apple" }
+const DELETE_CONFIRMATION = "delete my account"
 
 function Account() {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { data: me } = useMe();
-  const { data: config } = useConfig();
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { data: me } = useMe()
+  const { data: config } = useConfig()
   const signOut = async () => {
-    queryClient.clear();
-    await navigate({ to: "/login" });
-  };
-  const logout = useLogout({ mutation: { onSuccess: signOut } });
-  const deleteMe = useDeleteMe({ mutation: { onSuccess: signOut } });
+    queryClient.clear()
+    await navigate({ to: "/login" })
+  }
+  const logout = useLogout({ mutation: { onSuccess: signOut } })
+  const deleteMe = useDeleteMe({ mutation: { onSuccess: signOut } })
 
-  const linked = new Set(me?.identities.map((i) => i.provider));
-  const linkable = (Object.keys(PROVIDER_LABEL) as Provider[]).filter(
-    (p) => config?.providers[p] && !linked.has(p),
-  );
+  const linked = new Set(me?.identities.map((i) => i.provider))
+  const linkable = (Object.keys(PROVIDER_LABEL) as Provider[]).filter((p) => config?.providers[p] && !linked.has(p))
 
   return (
     <main className="mx-auto grid max-w-2xl gap-4 p-4">
@@ -80,8 +78,8 @@ function Account() {
         <CardHeader>
           <CardTitle>Delete account</CardTitle>
           <CardDescription>
-            Removes your sign-in methods and memberships. Households you are the last member of are
-            deleted with all of their data.
+            Removes your sign-in methods and memberships. Households you are the last member of are deleted with all of
+            their data.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-2">
@@ -97,11 +95,9 @@ function Account() {
             typeToConfirm={DELETE_CONFIRMATION}
             onConfirm={() => deleteMe.mutate()}
           />
-          {deleteMe.isError && (
-            <p className="text-destructive text-sm">{errorMessage(deleteMe.error)}</p>
-          )}
+          {deleteMe.isError && <p className="text-sm text-destructive">{errorMessage(deleteMe.error)}</p>}
         </CardContent>
       </Card>
     </main>
-  );
+  )
 }

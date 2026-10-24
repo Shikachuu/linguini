@@ -1,29 +1,29 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { HistoryIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
-import { useDeferredValue, useState } from "react";
-import { useDeleteItem, useListItems } from "@/api/gen/endpoints/inventory/inventory";
-import type { ItemOut } from "@/api/gen/model";
-import { PageHeader } from "@/components/app-shell";
-import { Confirm } from "@/components/confirm";
-import { ItemDialog } from "@/components/pantry/item-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { errorMessage } from "@/lib/errors";
-import { formatQuantity } from "@/lib/format";
-import { freshness, invalidatePantry } from "@/lib/pantry";
+import { useQueryClient } from "@tanstack/react-query"
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { HistoryIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { useDeferredValue, useState } from "react"
+import { useDeleteItem, useListItems } from "@/api/gen/endpoints/inventory/inventory"
+import type { ItemOut } from "@/api/gen/model"
+import { PageHeader } from "@/components/app-shell"
+import { Confirm } from "@/components/confirm"
+import { ItemDialog } from "@/components/pantry/item-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
+import { errorMessage } from "@/lib/errors"
+import { formatQuantity } from "@/lib/format"
+import { freshness, invalidatePantry } from "@/lib/pantry"
 
 export const Route = createFileRoute("/_authed/h/$hid/inventory/")({
   component: Pantry,
-});
+})
 
 function Pantry() {
-  const { hid } = Route.useParams();
-  const [search, setSearch] = useState("");
-  const q = useDeferredValue(search.trim());
-  const items = useListItems(hid, q ? { q } : undefined);
+  const { hid } = Route.useParams()
+  const [search, setSearch] = useState("")
+  const q = useDeferredValue(search.trim())
+  const items = useListItems(hid, q ? { q } : undefined)
 
   return (
     <div className="mx-auto max-w-2xl pb-6">
@@ -57,14 +57,10 @@ function Pantry() {
         />
       </div>
       {items.isPending && <ListSkeleton />}
-      {items.isError && (
-        <p className="text-destructive px-4 text-sm">{errorMessage(items.error)}</p>
-      )}
+      {items.isError && <p className="px-4 text-sm text-destructive">{errorMessage(items.error)}</p>}
       {items.data?.length === 0 && (
-        <p className="text-muted-foreground px-4 text-sm">
-          {q
-            ? "Nothing matches."
-            : "The pantry is empty. Add items here or tell the chat what you bought."}
+        <p className="px-4 text-sm text-muted-foreground">
+          {q ? "Nothing matches." : "The pantry is empty. Add items here or tell the chat what you bought."}
         </p>
       )}
       <ul className="divide-y">
@@ -73,33 +69,25 @@ function Pantry() {
         ))}
       </ul>
     </div>
-  );
+  )
 }
 
 function ItemRow({ hid, item }: { hid: string; item: ItemOut }) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   const remove = useDeleteItem({
     mutation: { onSuccess: () => invalidatePantry(queryClient, hid) },
-  });
-  const fresh = freshness(item);
+  })
+  const fresh = freshness(item)
   return (
     <li className="flex items-center gap-3 px-4 py-2.5">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span
-            className={
-              item.quantity <= 0 ? "text-muted-foreground truncate line-through" : "truncate"
-            }
-          >
+          <span className={item.quantity <= 0 ? "truncate text-muted-foreground line-through" : "truncate"}>
             {item.name}
           </span>
-          {fresh && (
-            <Badge variant={fresh.tone === "bad" ? "destructive" : "secondary"}>
-              {fresh.label}
-            </Badge>
-          )}
+          {fresh && <Badge variant={fresh.tone === "bad" ? "destructive" : "secondary"}>{fresh.label}</Badge>}
         </div>
-        {item.notes && <p className="text-muted-foreground truncate text-xs">{item.notes}</p>}
+        {item.notes && <p className="truncate text-xs text-muted-foreground">{item.notes}</p>}
       </div>
       <span className="text-sm tabular-nums">{formatQuantity(item.quantity, item.unit)}</span>
       <ItemDialog
@@ -113,12 +101,7 @@ function ItemRow({ hid, item }: { hid: string; item: ItemOut }) {
       />
       <Confirm
         trigger={
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Delete ${item.name}`}
-            disabled={remove.isPending}
-          >
+          <Button variant="ghost" size="icon" aria-label={`Delete ${item.name}`} disabled={remove.isPending}>
             <Trash2Icon />
           </Button>
         }
@@ -128,7 +111,7 @@ function ItemRow({ hid, item }: { hid: string; item: ItemOut }) {
         onConfirm={() => remove.mutate({ householdId: hid, itemId: item.id })}
       />
     </li>
-  );
+  )
 }
 
 function ListSkeleton() {
@@ -138,5 +121,5 @@ function ListSkeleton() {
         <Skeleton key={i} className="h-10 w-full" />
       ))}
     </div>
-  );
+  )
 }

@@ -1,10 +1,10 @@
-import { fileURLToPath, URL } from "node:url";
-import tailwindcss from "@tailwindcss/vite";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import react from "@vitejs/plugin-react";
-import { defineConfig, lazyPlugins } from "vite-plus";
-import { formatter } from "./lint/oxfmt.ts";
-import { react as reactLint } from "./lint/oxlint.ts";
+import { fileURLToPath, URL } from "node:url"
+import tailwindcss from "@tailwindcss/vite"
+import { tanstackRouter } from "@tanstack/router-plugin/vite"
+import react from "@vitejs/plugin-react"
+import { defineConfig, lazyPlugins } from "vite-plus"
+import { formatter } from "./lint/oxfmt.ts"
+import { react as reactLint } from "./lint/oxlint.ts"
 
 export default defineConfig({
   fmt: formatter,
@@ -43,9 +43,5 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
   },
-  plugins: lazyPlugins(() => [
-    tanstackRouter({ target: "react", autoCodeSplitting: true }),
-    react(),
-    tailwindcss(),
-  ]),
-});
+  plugins: lazyPlugins(() => [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()]),
+})

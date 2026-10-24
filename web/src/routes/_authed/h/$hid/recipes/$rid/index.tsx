@@ -1,39 +1,38 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { PencilIcon, Trash2Icon } from "lucide-react";
-import { useDeleteRecipe, useGetRecipe } from "@/api/gen/endpoints/recipes/recipes";
-import { PageHeader } from "@/components/app-shell";
-import { Confirm } from "@/components/confirm";
-import { CookDialog } from "@/components/recipes/cook-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { errorMessage } from "@/lib/errors";
-import { formatQuantity } from "@/lib/format";
-import { invalidateRecipes } from "@/lib/recipes";
+import { useQueryClient } from "@tanstack/react-query"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { PencilIcon, Trash2Icon } from "lucide-react"
+import { useDeleteRecipe, useGetRecipe } from "@/api/gen/endpoints/recipes/recipes"
+import { PageHeader } from "@/components/app-shell"
+import { Confirm } from "@/components/confirm"
+import { CookDialog } from "@/components/recipes/cook-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { errorMessage } from "@/lib/errors"
+import { formatQuantity } from "@/lib/format"
+import { invalidateRecipes } from "@/lib/recipes"
 
 export const Route = createFileRoute("/_authed/h/$hid/recipes/$rid/")({
   component: RecipeView,
-});
+})
 
 function RecipeView() {
-  const { hid, rid } = Route.useParams();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const recipe = useGetRecipe(hid, rid);
+  const { hid, rid } = Route.useParams()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const recipe = useGetRecipe(hid, rid)
   const remove = useDeleteRecipe({
     mutation: {
       onSuccess: async () => {
-        await invalidateRecipes(queryClient, hid);
-        await navigate({ to: "/h/$hid/recipes", params: { hid } });
+        await invalidateRecipes(queryClient, hid)
+        await navigate({ to: "/h/$hid/recipes", params: { hid } })
       },
     },
-  });
+  })
 
-  if (recipe.isPending) return <Skeleton className="m-4 h-40" />;
-  if (recipe.isError)
-    return <p className="text-destructive p-4 text-sm">{errorMessage(recipe.error)}</p>;
-  const r = recipe.data;
+  if (recipe.isPending) return <Skeleton className="m-4 h-40" />
+  if (recipe.isError) return <p className="p-4 text-sm text-destructive">{errorMessage(recipe.error)}</p>
+  const r = recipe.data
 
   return (
     <article className="mx-auto max-w-2xl pb-6">
@@ -62,7 +61,7 @@ function RecipeView() {
         }
       />
       <div className="grid gap-5 px-4">
-        <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span>{r.servings} servings</span>
           {r.allergens.map((a) => (
             <Badge key={a} variant="outline">
@@ -96,5 +95,5 @@ function RecipeView() {
         )}
       </div>
     </article>
-  );
+  )
 }

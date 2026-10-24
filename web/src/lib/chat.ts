@@ -1,10 +1,10 @@
-import type { UIMessage } from "ai";
-import { detailOf } from "@/api/fetcher";
+import type { UIMessage } from "ai"
+import { detailOf } from "@/api/fetcher"
 
 export interface ChangeLine {
-  ok: boolean;
-  message: string;
-  event_id: string | null;
+  ok: boolean
+  message: string
+  event_id: string | null
 }
 
 const TOOL_TITLES: Record<string, string> = {
@@ -19,47 +19,45 @@ const TOOL_TITLES: Record<string, string> = {
   get_recipe: "Read a recipe",
   save_recipe: "Saved a recipe",
   cook_recipe: "Cooked a recipe",
-};
+}
 
 export function toolTitle(name: string): string {
-  return TOOL_TITLES[name] ?? name.replaceAll("_", " ");
+  return TOOL_TITLES[name] ?? name.replaceAll("_", " ")
 }
 
 export function chatRequestBody(id: string, messages: UIMessage[]) {
-  const last = messages.at(-1);
-  const parts = (last?.parts ?? []).flatMap((part) =>
-    part.type === "text" ? [{ type: "text", text: part.text }] : [],
-  );
+  const last = messages.at(-1)
+  const parts = (last?.parts ?? []).flatMap((part) => (part.type === "text" ? [{ type: "text", text: part.text }] : []))
   return {
     id,
     trigger: "submit-message",
     messages: last ? [{ id: last.id, role: last.role, parts }] : [],
-  };
+  }
 }
 
 export function mergeAssistantMessages(messages: UIMessage[]): UIMessage[] {
-  const merged: UIMessage[] = [];
+  const merged: UIMessage[] = []
   for (const message of messages) {
-    const previous = merged.at(-1);
+    const previous = merged.at(-1)
     if (previous?.role === "assistant" && message.role === "assistant") {
-      merged[merged.length - 1] = { ...previous, parts: [...previous.parts, ...message.parts] };
+      merged[merged.length - 1] = { ...previous, parts: [...previous.parts, ...message.parts] }
     } else {
-      merged.push(message);
+      merged.push(message)
     }
   }
-  return merged;
+  return merged
 }
 
 function parseJson(text: string): unknown {
   try {
-    return JSON.parse(text);
+    return JSON.parse(text)
   } catch {
-    return undefined;
+    return undefined
   }
 }
 
 export function chatErrorMessage(error: Error): string {
-  return detailOf(parseJson(error.message)) ?? (error.message || "The reply failed.");
+  return detailOf(parseJson(error.message)) ?? (error.message || "The reply failed.")
 }
 
 function isChangeLine(value: unknown): value is ChangeLine {
@@ -70,19 +68,14 @@ function isChangeLine(value: unknown): value is ChangeLine {
     typeof value.ok === "boolean" &&
     "message" in value &&
     typeof value.message === "string"
-  );
+  )
 }
 
 export function changeLines(output: unknown): ChangeLine[] | null {
-  if (isChangeLine(output)) return [{ ...output, event_id: output.event_id ?? null }];
-  if (
-    typeof output === "object" &&
-    output !== null &&
-    "results" in output &&
-    Array.isArray(output.results)
-  ) {
-    const lines = output.results.filter(isChangeLine);
-    return lines.length ? lines.map((l) => ({ ...l, event_id: l.event_id ?? null })) : null;
+  if (isChangeLine(output)) return [{ ...output, event_id: output.event_id ?? null }]
+  if (typeof output === "object" && output !== null && "results" in output && Array.isArray(output.results)) {
+    const lines = output.results.filter(isChangeLine)
+    return lines.length ? lines.map((l) => ({ ...l, event_id: l.event_id ?? null })) : null
   }
-  return null;
+  return null
 }

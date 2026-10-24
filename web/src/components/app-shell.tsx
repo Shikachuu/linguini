@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router"
 import {
   BookOpenIcon,
   ChevronsUpDownIcon,
@@ -7,29 +7,29 @@ import {
   PlusIcon,
   SettingsIcon,
   UserIcon,
-} from "lucide-react";
-import type { ReactNode } from "react";
-import { useMe } from "@/api/gen/endpoints/auth/auth";
-import { Button } from "@/components/ui/button";
+} from "lucide-react"
+import type { ReactNode } from "react"
+import { useMe } from "@/api/gen/endpoints/auth/auth"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 
 const NAV = [
   { to: "/h/$hid/chat", label: "Chat", icon: MessageSquareIcon },
   { to: "/h/$hid/recipes", label: "Recipes", icon: BookOpenIcon },
   { to: "/h/$hid/inventory", label: "Pantry", icon: PackageIcon },
   { to: "/h/$hid/settings", label: "Settings", icon: SettingsIcon },
-] as const;
+] as const
 
 function HouseholdSwitcher({ hid }: { hid: string }) {
-  const { data: me } = useMe();
-  const navigate = useNavigate();
-  const current = me?.households.find((h) => h.id === hid);
+  const { data: me } = useMe()
+  const navigate = useNavigate()
+  const current = me?.households.find((h) => h.id === hid)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -40,10 +40,7 @@ function HouseholdSwitcher({ hid }: { hid: string }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {me?.households.map((h) => (
-          <DropdownMenuItem
-            key={h.id}
-            onSelect={() => void navigate({ to: "/h/$hid/chat", params: { hid: h.id } })}
-          >
+          <DropdownMenuItem key={h.id} onSelect={() => void navigate({ to: "/h/$hid/chat", params: { hid: h.id } })}>
             {h.name}
           </DropdownMenuItem>
         ))}
@@ -53,7 +50,7 @@ function HouseholdSwitcher({ hid }: { hid: string }) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }
 
 export function AppShell({ hid, children }: { hid: string; children: ReactNode }) {
@@ -67,7 +64,7 @@ export function AppShell({ hid, children }: { hid: string; children: ReactNode }
               key={to}
               to={to}
               params={{ hid }}
-              className="hover:bg-accent flex items-center gap-2 rounded-md px-3 py-2 text-sm"
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
               activeProps={{ className: "bg-accent font-medium" }}
             >
               <Icon className="size-4" /> {label}
@@ -76,7 +73,7 @@ export function AppShell({ hid, children }: { hid: string; children: ReactNode }
         </nav>
         <Link
           to="/account"
-          className="hover:bg-accent mt-auto flex items-center gap-2 rounded-md px-3 py-2 text-sm"
+          className="mt-auto flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
           activeProps={{ className: "bg-accent font-medium" }}
         >
           <UserIcon className="size-4" /> Account
@@ -91,13 +88,13 @@ export function AppShell({ hid, children }: { hid: string; children: ReactNode }
         </Button>
       </header>
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
-      <nav className="bg-background grid h-14 shrink-0 grid-cols-4 border-t md:hidden">
+      <nav className="grid h-14 shrink-0 grid-cols-4 border-t bg-background md:hidden">
         {NAV.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
             to={to}
             params={{ hid }}
-            className="text-muted-foreground flex flex-col items-center justify-center gap-0.5 text-xs"
+            className="flex flex-col items-center justify-center gap-0.5 text-xs text-muted-foreground"
             activeProps={{ className: "text-foreground font-medium" }}
           >
             <Icon className="size-5" />
@@ -106,7 +103,7 @@ export function AppShell({ hid, children }: { hid: string; children: ReactNode }
         ))}
       </nav>
     </div>
-  );
+  )
 }
 
 export function PageHeader({ title, actions }: { title: ReactNode; actions?: ReactNode }) {
@@ -115,5 +112,5 @@ export function PageHeader({ title, actions }: { title: ReactNode; actions?: Rea
       <h1 className="truncate text-xl font-semibold">{title}</h1>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import { defineConfig } from "orval";
+import { defineConfig } from "orval"
 
 export default defineConfig({
   linguini: {
@@ -17,4 +17,4 @@ export default defineConfig({
       },
     },
   },
-});
+})

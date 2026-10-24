@@ -1,24 +1,16 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { MoreHorizontalIcon, PlusIcon } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { MoreHorizontalIcon, PlusIcon } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
 import {
   getListThreadsQueryKey,
   useCreateThread,
   useDeleteThread,
   useListThreads,
   useRenameThread,
-} from "@/api/gen/endpoints/chat/chat";
-import type { ThreadOut } from "@/api/gen/model";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/api/gen/endpoints/chat/chat"
+import type { ThreadOut } from "@/api/gen/model"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,43 +20,36 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { errorMessage } from "@/lib/errors";
-import { formatDateTime } from "@/lib/format";
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
+import { errorMessage } from "@/lib/errors"
+import { formatDateTime } from "@/lib/format"
 
 export function NewChatButton({ hid }: { hid: string }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const create = useCreateThread({
     mutation: {
       onSuccess: async (thread) => {
-        await queryClient.invalidateQueries({ queryKey: getListThreadsQueryKey(hid) });
-        await navigate({ to: "/h/$hid/chat/$tid", params: { hid, tid: thread.id } });
+        await queryClient.invalidateQueries({ queryKey: getListThreadsQueryKey(hid) })
+        await navigate({ to: "/h/$hid/chat/$tid", params: { hid, tid: thread.id } })
       },
       onError: (error) => toast.error(errorMessage(error)),
     },
-  });
+  })
   return (
-    <Button
-      size="sm"
-      disabled={create.isPending}
-      onClick={() => create.mutate({ householdId: hid, data: {} })}
-    >
+    <Button size="sm" disabled={create.isPending} onClick={() => create.mutate({ householdId: hid, data: {} })}>
       <PlusIcon /> New chat
     </Button>
-  );
+  )
 }
 
 export function ThreadList({ hid, activeId }: { hid: string; activeId?: string }) {
-  const threads = useListThreads(hid);
+  const threads = useListThreads(hid)
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
@@ -72,66 +57,53 @@ export function ThreadList({ hid, activeId }: { hid: string; activeId?: string }
         <NewChatButton hid={hid} />
       </div>
       {threads.isPending && <Skeleton className="mx-4 h-10" />}
-      {threads.isError && (
-        <p className="text-destructive px-4 text-sm">{errorMessage(threads.error)}</p>
-      )}
-      {threads.data?.length === 0 && (
-        <p className="text-muted-foreground px-4 text-sm">No chats yet.</p>
-      )}
+      {threads.isError && <p className="px-4 text-sm text-destructive">{errorMessage(threads.error)}</p>}
+      {threads.data?.length === 0 && <p className="px-4 text-sm text-muted-foreground">No chats yet.</p>}
       <ul>
         {threads.data?.map((thread) => (
           <ThreadRow key={thread.id} hid={hid} thread={thread} active={thread.id === activeId} />
         ))}
       </ul>
     </div>
-  );
+  )
 }
 
 function ThreadRow({ hid, thread, active }: { hid: string; thread: ThreadOut; active: boolean }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [dialog, setDialog] = useState<"rename" | "delete" | null>(null);
-  const [title, setTitle] = useState(thread.title);
-  const refresh = () => queryClient.invalidateQueries({ queryKey: getListThreadsQueryKey(hid) });
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const [dialog, setDialog] = useState<"rename" | "delete" | null>(null)
+  const [title, setTitle] = useState(thread.title)
+  const refresh = () => queryClient.invalidateQueries({ queryKey: getListThreadsQueryKey(hid) })
   const rename = useRenameThread({
     mutation: { onSuccess: () => refresh().then(() => setDialog(null)) },
-  });
+  })
   const remove = useDeleteThread({
     mutation: {
       onSuccess: async () => {
-        await refresh();
-        if (active) await navigate({ to: "/h/$hid/chat", params: { hid } });
+        await refresh()
+        if (active) await navigate({ to: "/h/$hid/chat", params: { hid } })
       },
       onError: (error) => toast.error(errorMessage(error)),
     },
-  });
+  })
 
   return (
-    <li className={active ? "bg-accent flex items-center" : "hover:bg-accent/60 flex items-center"}>
-      <Link
-        to="/h/$hid/chat/$tid"
-        params={{ hid, tid: thread.id }}
-        className="min-w-0 flex-1 px-4 py-2.5"
-      >
+    <li className={active ? "flex items-center bg-accent" : "flex items-center hover:bg-accent/60"}>
+      <Link to="/h/$hid/chat/$tid" params={{ hid, tid: thread.id }} className="min-w-0 flex-1 px-4 py-2.5">
         <div className="truncate text-sm">{thread.title}</div>
-        <div className="text-muted-foreground text-xs">{formatDateTime(thread.updated_at)}</div>
+        <div className="text-xs text-muted-foreground">{formatDateTime(thread.updated_at)}</div>
       </Link>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Actions for ${thread.title}`}
-            className="mr-2"
-          >
+          <Button variant="ghost" size="icon" aria-label={`Actions for ${thread.title}`} className="mr-2">
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             onSelect={() => {
-              setTitle(thread.title);
-              setDialog("rename");
+              setTitle(thread.title)
+              setDialog("rename")
             }}
           >
             Rename
@@ -149,12 +121,12 @@ function ThreadRow({ hid, thread, active }: { hid: string; thread: ThreadOut; ac
           <form
             className="grid gap-3"
             onSubmit={(event) => {
-              event.preventDefault();
+              event.preventDefault()
               rename.mutate({
                 householdId: hid,
                 threadId: thread.id,
                 data: { title: title.trim() },
-              });
+              })
             }}
           >
             <Input
@@ -164,9 +136,7 @@ function ThreadRow({ hid, thread, active }: { hid: string; thread: ThreadOut; ac
               maxLength={80}
               required
             />
-            {rename.isError && (
-              <p className="text-destructive text-sm">{errorMessage(rename.error)}</p>
-            )}
+            {rename.isError && <p className="text-sm text-destructive">{errorMessage(rename.error)}</p>}
             <DialogFooter>
               <Button type="submit" disabled={rename.isPending}>
                 Save
@@ -175,10 +145,7 @@ function ThreadRow({ hid, thread, active }: { hid: string; thread: ThreadOut; ac
           </form>
         </DialogContent>
       </Dialog>
-      <AlertDialog
-        open={dialog === "delete"}
-        onOpenChange={(open) => setDialog(open ? "delete" : null)}
-      >
+      <AlertDialog open={dialog === "delete"} onOpenChange={(open) => setDialog(open ? "delete" : null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {thread.title}?</AlertDialogTitle>
@@ -198,5 +165,5 @@ function ThreadRow({ hid, thread, active }: { hid: string; thread: ThreadOut; ac
         </AlertDialogContent>
       </AlertDialog>
     </li>
-  );
+  )
 }

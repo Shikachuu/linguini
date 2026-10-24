@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,27 +9,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
 
 interface ConfirmProps {
-  trigger: ReactNode;
-  title: string;
-  description: ReactNode;
-  action: string;
-  onConfirm: () => void;
-  typeToConfirm?: string;
+  trigger: ReactNode
+  title: string
+  description: ReactNode
+  action: string
+  onConfirm: () => void
+  typeToConfirm?: string
 }
 
-export function Confirm({
-  trigger,
-  title,
-  description,
-  action,
-  onConfirm,
-  typeToConfirm,
-}: ConfirmProps) {
-  const [typed, setTyped] = useState("");
+export function Confirm({ trigger, title, description, action, onConfirm, typeToConfirm }: ConfirmProps) {
+  const [typed, setTyped] = useState("")
   return (
     <AlertDialog onOpenChange={() => setTyped("")}>
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
@@ -58,5 +51,5 @@ export function Confirm({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }

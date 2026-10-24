@@ -1,10 +1,9 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { CheckIcon, CookingPotIcon, XIcon } from "lucide-react";
-import { useState } from "react";
-import { useCookRecipe } from "@/api/gen/endpoints/recipes/recipes";
-import type { RecipeOut } from "@/api/gen/model";
-import { UndoButton } from "@/components/undo-button";
-import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query"
+import { CheckIcon, CookingPotIcon, XIcon } from "lucide-react"
+import { useState } from "react"
+import { useCookRecipe } from "@/api/gen/endpoints/recipes/recipes"
+import type { RecipeOut } from "@/api/gen/model"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -13,23 +12,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { errorMessage } from "@/lib/errors";
-import { invalidatePantry } from "@/lib/pantry";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { UndoButton } from "@/components/undo-button"
+import { errorMessage } from "@/lib/errors"
+import { invalidatePantry } from "@/lib/pantry"
 
 export function CookDialog({ hid, recipe }: { hid: string; recipe: RecipeOut }) {
-  const queryClient = useQueryClient();
-  const [servings, setServings] = useState(String(recipe.servings));
-  const cook = useCookRecipe({ mutation: { onSuccess: () => invalidatePantry(queryClient, hid) } });
+  const queryClient = useQueryClient()
+  const [servings, setServings] = useState(String(recipe.servings))
+  const cook = useCookRecipe({ mutation: { onSuccess: () => invalidatePantry(queryClient, hid) } })
 
   return (
     <Dialog
       onOpenChange={(open) => {
         if (open) {
-          cook.reset();
-          setServings(String(recipe.servings));
+          cook.reset()
+          setServings(String(recipe.servings))
         }
       }}
     >
@@ -50,7 +50,7 @@ export function CookDialog({ hid, recipe }: { hid: string; recipe: RecipeOut }) 
                 {line.ok ? (
                   <CheckIcon className="size-4 text-green-600" aria-label="done" />
                 ) : (
-                  <XIcon className="text-destructive size-4" aria-label="failed" />
+                  <XIcon className="size-4 text-destructive" aria-label="failed" />
                 )}
                 <span className="min-w-0 flex-1">{line.message}</span>
                 {line.event_id && <UndoButton hid={hid} eventId={line.event_id} />}
@@ -61,12 +61,12 @@ export function CookDialog({ hid, recipe }: { hid: string; recipe: RecipeOut }) 
           <form
             className="grid gap-3"
             onSubmit={(event) => {
-              event.preventDefault();
+              event.preventDefault()
               cook.mutate({
                 householdId: hid,
                 recipeId: recipe.id,
                 data: { servings: Number(servings) },
-              });
+              })
             }}
           >
             <div className="grid w-32 gap-1.5">
@@ -81,7 +81,7 @@ export function CookDialog({ hid, recipe }: { hid: string; recipe: RecipeOut }) 
                 required
               />
             </div>
-            {cook.isError && <p className="text-destructive text-sm">{errorMessage(cook.error)}</p>}
+            {cook.isError && <p className="text-sm text-destructive">{errorMessage(cook.error)}</p>}
             <DialogFooter>
               <Button type="submit" disabled={cook.isPending}>
                 Cook
@@ -91,5 +91,5 @@ export function CookDialog({ hid, recipe }: { hid: string; recipe: RecipeOut }) 
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }

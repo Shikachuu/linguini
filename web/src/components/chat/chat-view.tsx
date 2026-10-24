@@ -1,33 +1,33 @@
-import { useChat } from "@ai-sdk/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { DefaultChatTransport, isToolUIPart, type UIMessage } from "ai";
-import { useMemo } from "react";
-import { toast } from "sonner";
-import { getGetThreadQueryKey, getListThreadsQueryKey } from "@/api/gen/endpoints/chat/chat";
+import { useChat } from "@ai-sdk/react"
+import { useQueryClient } from "@tanstack/react-query"
+import { DefaultChatTransport, isToolUIPart, type UIMessage } from "ai"
+import { useMemo } from "react"
+import { toast } from "sonner"
+import { apiHeaders } from "@/api/fetcher"
+import { getGetThreadQueryKey, getListThreadsQueryKey } from "@/api/gen/endpoints/chat/chat"
 import {
   Conversation,
   ConversationContent,
   ConversationEmptyState,
   ConversationScrollButton,
-} from "@/components/ai-elements/conversation";
-import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+} from "@/components/ai-elements/conversation"
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message"
 import {
   PromptInput,
   PromptInputBody,
   PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
-} from "@/components/ai-elements/prompt-input";
-import { ToolPart } from "@/components/chat/tool-part";
-import { apiHeaders } from "@/api/fetcher";
-import { chatErrorMessage, chatRequestBody } from "@/lib/chat";
-import { invalidatePantry } from "@/lib/pantry";
-import { invalidateRecipes } from "@/lib/recipes";
+} from "@/components/ai-elements/prompt-input"
+import { ToolPart } from "@/components/chat/tool-part"
+import { chatErrorMessage, chatRequestBody } from "@/lib/chat"
+import { invalidatePantry } from "@/lib/pantry"
+import { invalidateRecipes } from "@/lib/recipes"
 
 interface ChatViewProps {
-  hid: string;
-  tid: string;
-  initialMessages: UIMessage[];
+  hid: string
+  tid: string
+  initialMessages: UIMessage[]
 }
 
 export function chatTransport(hid: string, tid: string) {
@@ -36,12 +36,12 @@ export function chatTransport(hid: string, tid: string) {
     headers: () => Object.fromEntries(apiHeaders("POST")),
     credentials: "same-origin",
     prepareSendMessagesRequest: ({ id, messages }) => ({ body: chatRequestBody(id, messages) }),
-  });
+  })
 }
 
 export function ChatView({ hid, tid, initialMessages }: ChatViewProps) {
-  const queryClient = useQueryClient();
-  const transport = useMemo(() => chatTransport(hid, tid), [hid, tid]);
+  const queryClient = useQueryClient()
+  const transport = useMemo(() => chatTransport(hid, tid), [hid, tid])
   const { messages, sendMessage, status, stop } = useChat({
     id: tid,
     messages: initialMessages,
@@ -52,11 +52,11 @@ export function ChatView({ hid, tid, initialMessages }: ChatViewProps) {
         queryClient.invalidateQueries({ queryKey: getGetThreadQueryKey(hid, tid) }),
         invalidatePantry(queryClient, hid),
         invalidateRecipes(queryClient, hid),
-      ]);
+      ])
     },
     onError: (error) => toast.error(chatErrorMessage(error)),
-  });
-  const busy = status === "submitted" || status === "streaming";
+  })
+  const busy = status === "submitted" || status === "streaming"
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -79,25 +79,25 @@ export function ChatView({ hid, tid, initialMessages }: ChatViewProps) {
                         <p key={index} className="whitespace-pre-wrap">
                           {part.text}
                         </p>
-                      );
+                      )
                     }
                     if (isToolUIPart(part)) {
-                      return <ToolPart key={index} hid={hid} part={part} />;
+                      return <ToolPart key={index} hid={hid} part={part} />
                     }
-                    return null;
+                    return null
                   })}
                 </MessageContent>
               </Message>
             ))
           )}
-          {status === "submitted" && <p className="text-muted-foreground text-sm">Thinking...</p>}
+          {status === "submitted" && <p className="text-sm text-muted-foreground">Thinking...</p>}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
       <div className="mx-auto w-full max-w-3xl p-3">
         <PromptInput
           onSubmit={({ text }) => {
-            if (text.trim() && !busy) void sendMessage({ text: text.trim() });
+            if (text.trim() && !busy) void sendMessage({ text: text.trim() })
           }}
         >
           <PromptInputBody>
@@ -109,5 +109,5 @@ export function ChatView({ hid, tid, initialMessages }: ChatViewProps) {
         </PromptInput>
       </div>
     </div>
-  );
+  )
 }

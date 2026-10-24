@@ -1,28 +1,28 @@
-import { PlusIcon, XIcon } from "lucide-react";
-import { type FormEvent, useState } from "react";
-import type { Ingredient, RecipeData, RecipeOut } from "@/api/gen/model";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { UNITS } from "@/lib/pantry";
+import { PlusIcon, XIcon } from "lucide-react"
+import { type FormEvent, useState } from "react"
+import type { Ingredient, RecipeData, RecipeOut } from "@/api/gen/model"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { UNITS } from "@/lib/pantry"
 
 interface Line {
-  key: number;
-  name: string;
-  quantity: string;
-  unit: string;
-  optional: boolean;
+  key: number
+  name: string
+  quantity: string
+  unit: string
+  optional: boolean
 }
 
 interface RecipeFormProps {
-  recipe?: RecipeOut;
-  pending: boolean;
-  error?: string;
-  onSubmit: (data: RecipeData) => void;
+  recipe?: RecipeOut
+  pending: boolean
+  error?: string
+  onSubmit: (data: RecipeData) => void
 }
 
-let nextKey = 0;
+let nextKey = 0
 
 function toLine(ingredient?: Ingredient): Line {
   return {
@@ -31,24 +31,24 @@ function toLine(ingredient?: Ingredient): Line {
     quantity: ingredient ? String(ingredient.quantity) : "",
     unit: ingredient?.unit ?? "g",
     optional: ingredient?.optional ?? false,
-  };
+  }
 }
 
 export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps) {
-  const [title, setTitle] = useState(recipe?.title ?? "");
-  const [servings, setServings] = useState(String(recipe?.servings ?? 2));
+  const [title, setTitle] = useState(recipe?.title ?? "")
+  const [servings, setServings] = useState(String(recipe?.servings ?? 2))
   const [lines, setLines] = useState<Line[]>(() =>
     recipe?.ingredients.length ? recipe.ingredients.map(toLine) : [toLine()],
-  );
-  const [steps, setSteps] = useState(recipe?.steps.join("\n") ?? "");
-  const [allergens, setAllergens] = useState(recipe?.allergens.join(", ") ?? "");
+  )
+  const [steps, setSteps] = useState(recipe?.steps.join("\n") ?? "")
+  const [allergens, setAllergens] = useState(recipe?.allergens.join(", ") ?? "")
 
   function update(key: number, patch: Partial<Line>) {
-    setLines((current) => current.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+    setLines((current) => current.map((l) => (l.key === key ? { ...l, ...patch } : l)))
   }
 
   function submit(event: FormEvent) {
-    event.preventDefault();
+    event.preventDefault()
     onSubmit({
       title: title.trim(),
       servings: Number(servings),
@@ -68,20 +68,14 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
         .split(",")
         .map((a) => a.trim())
         .filter(Boolean),
-    });
+    })
   }
 
   return (
     <form className="grid gap-4 px-4" onSubmit={submit}>
       <div className="grid gap-1.5">
         <Label htmlFor="recipe-title">Title</Label>
-        <Input
-          id="recipe-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          maxLength={120}
-        />
+        <Input id="recipe-title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} />
       </div>
       <div className="grid w-32 gap-1.5">
         <Label htmlFor="recipe-servings">Servings</Label>
@@ -126,7 +120,7 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
               onChange={(e) => update(line.key, { unit: e.target.value })}
               className="w-20"
             />
-            <label className="text-muted-foreground flex items-center gap-1 text-xs">
+            <label className="flex items-center gap-1 text-xs text-muted-foreground">
               <input
                 type="checkbox"
                 checked={line.optional}
@@ -163,25 +157,16 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
       </fieldset>
       <div className="grid gap-1.5">
         <Label htmlFor="recipe-steps">Steps, one per line</Label>
-        <Textarea
-          id="recipe-steps"
-          value={steps}
-          onChange={(e) => setSteps(e.target.value)}
-          rows={6}
-        />
+        <Textarea id="recipe-steps" value={steps} onChange={(e) => setSteps(e.target.value)} rows={6} />
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="recipe-allergens">Allergens, comma separated</Label>
-        <Input
-          id="recipe-allergens"
-          value={allergens}
-          onChange={(e) => setAllergens(e.target.value)}
-        />
+        <Input id="recipe-allergens" value={allergens} onChange={(e) => setAllergens(e.target.value)} />
       </div>
-      {error && <p className="text-destructive text-sm">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" disabled={pending} className="justify-self-start">
         Save
       </Button>
     </form>
-  );
+  )
 }

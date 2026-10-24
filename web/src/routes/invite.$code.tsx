@@ -1,21 +1,21 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { acceptInvite } from "@/api/gen/endpoints/households/households";
-import { Button } from "@/components/ui/button";
-import { errorMessage, isUnauthorized } from "@/lib/errors";
-import { loadMe, refreshMe } from "@/lib/session";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
+import { acceptInvite } from "@/api/gen/endpoints/households/households"
+import { Button } from "@/components/ui/button"
+import { errorMessage, isUnauthorized } from "@/lib/errors"
+import { loadMe, refreshMe } from "@/lib/session"
 
 export const Route = createFileRoute("/invite/$code")({
   beforeLoad: async ({ context, params }) => {
     await loadMe(context.queryClient).catch((error: unknown) => {
-      if (isUnauthorized(error)) throw redirect({ to: "/login", search: { invite: params.code } });
-      throw error;
-    });
-    const household = await acceptInvite(params.code);
-    await refreshMe(context.queryClient);
-    throw redirect({ to: "/h/$hid/chat", params: { hid: household.id } });
+      if (isUnauthorized(error)) throw redirect({ to: "/login", search: { invite: params.code } })
+      throw error
+    })
+    const household = await acceptInvite(params.code)
+    await refreshMe(context.queryClient)
+    throw redirect({ to: "/h/$hid/chat", params: { hid: household.id } })
   },
   errorComponent: InviteError,
-});
+})
 
 function InviteError({ error }: { error: unknown }) {
   return (
@@ -25,5 +25,5 @@ function InviteError({ error }: { error: unknown }) {
         <Link to="/">Go home</Link>
       </Button>
     </main>
-  );
+  )
 }

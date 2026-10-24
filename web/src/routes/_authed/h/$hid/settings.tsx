@@ -1,9 +1,9 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CopyIcon } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import { useMe } from "@/api/gen/endpoints/auth/auth";
+import { useQueryClient } from "@tanstack/react-query"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { CopyIcon } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { useMe } from "@/api/gen/endpoints/auth/auth"
 import {
   getListMembersQueryKey,
   useCreateInvite,
@@ -12,23 +12,23 @@ import {
   useListMembers,
   useRemoveMember,
   useRenameHousehold,
-} from "@/api/gen/endpoints/households/households";
-import { PageHeader } from "@/components/app-shell";
-import { Confirm } from "@/components/confirm";
-import { KifliCard } from "@/components/settings/kifli-card";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { errorMessage } from "@/lib/errors";
-import { formatDate, formatDateTime } from "@/lib/format";
-import { refreshMe } from "@/lib/session";
+} from "@/api/gen/endpoints/households/households"
+import { PageHeader } from "@/components/app-shell"
+import { Confirm } from "@/components/confirm"
+import { KifliCard } from "@/components/settings/kifli-card"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { errorMessage } from "@/lib/errors"
+import { formatDate, formatDateTime } from "@/lib/format"
+import { refreshMe } from "@/lib/session"
 
 export const Route = createFileRoute("/_authed/h/$hid/settings")({
   component: Settings,
-});
+})
 
 function Settings() {
-  const { hid } = Route.useParams();
+  const { hid } = Route.useParams()
   return (
     <div className="mx-auto grid max-w-2xl gap-4 pb-6">
       <PageHeader title="Settings" />
@@ -38,32 +38,32 @@ function Settings() {
         <KifliCard hid={hid} />
       </div>
     </div>
-  );
+  )
 }
 
 function HouseholdCard({ hid }: { hid: string }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const household = useGetHousehold(hid);
-  const [name, setName] = useState<string | null>(null);
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const household = useGetHousehold(hid)
+  const [name, setName] = useState<string | null>(null)
   const rename = useRenameHousehold({
     mutation: {
       onSuccess: async () => {
-        setName(null);
-        await Promise.all([refreshMe(queryClient), household.refetch()]);
-        toast.success("Household renamed");
+        setName(null)
+        await Promise.all([refreshMe(queryClient), household.refetch()])
+        toast.success("Household renamed")
       },
     },
-  });
+  })
   const remove = useDeleteHousehold({
     mutation: {
       onSuccess: async () => {
-        await refreshMe(queryClient);
-        await navigate({ to: "/" });
+        await refreshMe(queryClient)
+        await navigate({ to: "/" })
       },
     },
-  });
-  const value = name ?? household.data?.name ?? "";
+  })
+  const value = name ?? household.data?.name ?? ""
 
   return (
     <Card>
@@ -74,8 +74,8 @@ function HouseholdCard({ hid }: { hid: string }) {
         <form
           className="flex gap-2"
           onSubmit={(event) => {
-            event.preventDefault();
-            rename.mutate({ householdId: hid, data: { name: value.trim() } });
+            event.preventDefault()
+            rename.mutate({ householdId: hid, data: { name: value.trim() } })
           }}
         >
           <Input
@@ -89,7 +89,7 @@ function HouseholdCard({ hid }: { hid: string }) {
             Rename
           </Button>
         </form>
-        {rename.isError && <p className="text-destructive text-sm">{errorMessage(rename.error)}</p>}
+        {rename.isError && <p className="text-sm text-destructive">{errorMessage(rename.error)}</p>}
         <Confirm
           trigger={
             <Button variant="destructive" className="justify-self-start">
@@ -104,31 +104,31 @@ function HouseholdCard({ hid }: { hid: string }) {
         />
       </CardContent>
     </Card>
-  );
+  )
 }
 
 function MembersCard({ hid }: { hid: string }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { data: me } = useMe();
-  const members = useListMembers(hid);
-  const invite = useCreateInvite();
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { data: me } = useMe()
+  const members = useListMembers(hid)
+  const invite = useCreateInvite()
   const remove = useRemoveMember({
     mutation: {
       onSuccess: async (_, { userId }) => {
         if (userId === me?.id) {
-          await refreshMe(queryClient);
-          await navigate({ to: "/" });
+          await refreshMe(queryClient)
+          await navigate({ to: "/" })
         } else {
-          await queryClient.invalidateQueries({ queryKey: getListMembersQueryKey(hid) });
+          await queryClient.invalidateQueries({ queryKey: getListMembersQueryKey(hid) })
         }
       },
     },
-  });
+  })
 
   async function copy(url: string) {
-    await navigator.clipboard.writeText(url);
-    toast.success("Invite link copied");
+    await navigator.clipboard.writeText(url)
+    toast.success("Invite link copied")
   }
 
   return (
@@ -138,9 +138,7 @@ function MembersCard({ hid }: { hid: string }) {
         <CardDescription>Everyone here shares the pantry, recipes and chats.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3">
-        {members.isError && (
-          <p className="text-destructive text-sm">{errorMessage(members.error)}</p>
-        )}
+        {members.isError && <p className="text-sm text-destructive">{errorMessage(members.error)}</p>}
         <ul className="divide-y">
           {members.data?.map((m) => (
             <li key={m.user_id} className="flex items-center gap-2 py-2">
@@ -148,9 +146,7 @@ function MembersCard({ hid }: { hid: string }) {
                 {m.display_name}
                 {m.user_id === me?.id && <span className="text-muted-foreground"> (you)</span>}
               </span>
-              <span className="text-muted-foreground text-xs">
-                joined {formatDate(m.joined_at)}
-              </span>
+              <span className="text-xs text-muted-foreground">joined {formatDate(m.joined_at)}</span>
               <Confirm
                 trigger={
                   <Button variant="ghost" size="sm">
@@ -172,12 +168,7 @@ function MembersCard({ hid }: { hid: string }) {
         {invite.data ? (
           <div className="grid gap-1">
             <div className="flex gap-2">
-              <Input
-                readOnly
-                value={invite.data.url}
-                aria-label="Invite link"
-                onFocus={(e) => e.target.select()}
-              />
+              <Input readOnly value={invite.data.url} aria-label="Invite link" onFocus={(e) => e.target.select()} />
               <Button
                 variant="outline"
                 size="icon"
@@ -187,7 +178,7 @@ function MembersCard({ hid }: { hid: string }) {
                 <CopyIcon />
               </Button>
             </div>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-xs text-muted-foreground">
               Single use, valid until {formatDateTime(invite.data.expires_at)}.
             </p>
           </div>
@@ -201,8 +192,8 @@ function MembersCard({ hid }: { hid: string }) {
             Create invite link
           </Button>
         )}
-        {invite.isError && <p className="text-destructive text-sm">{errorMessage(invite.error)}</p>}
+        {invite.isError && <p className="text-sm text-destructive">{errorMessage(invite.error)}</p>}
       </CardContent>
     </Card>
-  );
+  )
 }

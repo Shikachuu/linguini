@@ -1,7 +1,7 @@
-import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, vi } from "vite-plus/test";
-import { server } from "./server";
+import "@testing-library/jest-dom/vitest"
+import { cleanup } from "@testing-library/react"
+import { afterAll, afterEach, beforeAll, vi } from "vite-plus/test"
+import { server } from "./server"
 
 class NoopResizeObserver {
   observe() {}
@@ -9,8 +9,8 @@ class NoopResizeObserver {
   disconnect() {}
 }
 
-vi.stubGlobal("ResizeObserver", NoopResizeObserver);
-vi.stubGlobal("scrollTo", () => {});
+vi.stubGlobal("ResizeObserver", NoopResizeObserver)
+vi.stubGlobal("scrollTo", () => {})
 vi.stubGlobal(
   "matchMedia",
   (query: string): MediaQueryList =>
@@ -24,11 +24,11 @@ vi.stubGlobal(
       removeListener: () => {},
       dispatchEvent: () => false,
     }) satisfies MediaQueryList,
-);
+)
 
-beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "error" }))
 afterEach(() => {
-  cleanup();
-  server.resetHandlers();
-});
-afterAll(() => server.close());
+  cleanup()
+  server.resetHandlers()
+})
+afterAll(() => server.close())
