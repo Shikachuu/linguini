@@ -19,7 +19,11 @@ run = [
 
 [tasks.fmt]
 description = "Format and autofix lint findings in the API and web app"
-run = ["uv run ruff check --fix .", "uv run ruff format .", "pnpm -C web exec vp check --fix"]
+run = [
+  "uv run ruff check --fix .",
+  "uv run ruff format .",
+  "pnpm -C web exec vp check --fix",
+]
 
 [tasks.test]
 description = "Run the API and web test suites"
