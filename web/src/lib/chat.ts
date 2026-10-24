@@ -1,6 +1,7 @@
-import { isToolUIPart, type UIMessage } from "ai"
+import { isToolUIPart, validateUIMessages, type UIMessage } from "ai"
 import { z } from "zod"
 import { detailOf } from "@/api/fetcher"
+import type { ThreadDetail } from "@/api/gen/model"
 
 const changeLine = z.object({
   ok: z.boolean(),
@@ -74,4 +75,10 @@ export const keyedParts = (message: UIMessage) => {
     key: isToolUIPart(part) ? part.toolCallId : `${message.id}:${position}`,
     part,
   }))
+}
+
+export const threadMessages = async (messages: ThreadDetail["messages"]): Promise<UIMessage[]> => {
+  if (messages.length === 0) return []
+
+  return mergeAssistantMessages(await validateUIMessages({ messages }))
 }

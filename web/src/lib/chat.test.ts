@@ -1,6 +1,6 @@
 import type { UIMessage } from "ai"
 import { describe, expect, it } from "vite-plus/test"
-import { changeLines, chatErrorMessage, chatRequestBody, mergeAssistantMessages } from "./chat"
+import { changeLines, chatErrorMessage, chatRequestBody, mergeAssistantMessages, threadMessages } from "./chat"
 
 const user = (id: string, text: string): UIMessage => ({
   id,
@@ -73,5 +73,26 @@ describe("changeLines", () => {
 describe("chatErrorMessage with odd bodies", () => {
   it("tolerates non-object entries in a detail list", () => {
     expect(chatErrorMessage(new Error('{"detail":[null,"x",{"msg":"bad"}]}'))).toBe('null; "x"; bad')
+  })
+})
+
+describe("threadMessages", () => {
+  it("accepts a thread without messages", async () => {
+    await expect(threadMessages([])).resolves.toEqual([])
+  })
+
+  it("parses stored messages and merges assistant turns", async () => {
+    const messages = await threadMessages([
+      { id: "u1", role: "user", parts: [{ type: "text", text: "q" }] },
+      { id: "a1", role: "assistant", parts: [{ type: "text", text: "x" }] },
+      { id: "a2", role: "assistant", parts: [{ type: "text", text: "y" }] },
+    ])
+
+    expect(messages.map((m) => m.id)).toEqual(["u1", "a1"])
+    expect(messages[1]?.parts).toHaveLength(2)
+  })
+
+  it("rejects messages that are not UI messages", async () => {
+    await expect(threadMessages([{ id: "u1", role: "robot", parts: [] }])).rejects.toThrow("Type validation failed")
   })
 })

@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { validateUIMessages } from "ai"
 import { ArrowLeftIcon, Undo2Icon } from "lucide-react"
 import { toast } from "sonner"
 import { getGetThreadQueryKey, getThread } from "@/api/gen/endpoints/chat/chat"
@@ -8,7 +7,7 @@ import { useUndoLastTurn } from "@/api/gen/endpoints/inventory/inventory"
 import { ChatView } from "@/components/chat/chat-view"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { mergeAssistantMessages } from "@/lib/chat"
+import { threadMessages } from "@/lib/chat"
 import { errorMessage } from "@/lib/errors"
 import { invalidatePantry } from "@/lib/pantry"
 
@@ -17,9 +16,8 @@ const useThread = (hid: string, tid: string) =>
     queryKey: getGetThreadQueryKey(hid, tid),
     queryFn: async ({ signal }) => {
       const detail = await getThread(hid, tid, { signal })
-      const messages = await validateUIMessages({ messages: detail.messages })
 
-      return { title: detail.title, messages: mergeAssistantMessages(messages) }
+      return { title: detail.title, messages: await threadMessages(detail.messages) }
     },
     staleTime: Infinity,
     refetchOnWindowFocus: false,
