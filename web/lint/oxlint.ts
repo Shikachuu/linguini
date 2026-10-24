@@ -37,7 +37,6 @@ export const base = {
     "node/no-process-env": "error",
     "promise/prefer-await-to-then": ["error", { strict: true }],
     "typescript/consistent-type-definitions": ["error", "type"],
-    // Library types (React props, oxlint AST nodes) are deeply mutable, so most parameters can never pass.
     "typescript/prefer-readonly-parameter-types": "off",
     "unicorn/no-negated-condition": "error",
     "unicorn/no-new-array": "error",
