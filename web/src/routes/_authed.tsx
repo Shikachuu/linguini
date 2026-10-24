@@ -8,6 +8,7 @@ export const Route = createFileRoute("/_authed")({
       if (isUnauthorized(error)) throw redirect({ to: "/login", search: { return_to: location.href } })
       throw error
     })
+
     return { me }
   },
   component: Outlet,

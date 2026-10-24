@@ -7,15 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { errorMessage } from "@/lib/errors"
 import { invalidateRecipes } from "@/lib/recipes"
 
-export const Route = createFileRoute("/_authed/h/$hid/recipes/$rid/edit")({
-  component: EditRecipe,
-})
-
-function EditRecipe() {
+const EditRecipe = () => {
   const { hid, rid } = Route.useParams()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const recipe = useGetRecipe(hid, rid)
+
   const replace = useReplaceRecipe({
     mutation: {
       onSuccess: async () => {
@@ -24,6 +21,7 @@ function EditRecipe() {
       },
     },
   })
+
   return (
     <div className="mx-auto max-w-2xl pb-6">
       <PageHeader title="Edit recipe" />
@@ -34,9 +32,15 @@ function EditRecipe() {
           recipe={recipe.data}
           pending={replace.isPending}
           error={replace.error ? errorMessage(replace.error) : undefined}
-          onSubmit={(data) => replace.mutate({ householdId: hid, recipeId: rid, data })}
+          onSubmit={(data) => {
+            replace.mutate({ householdId: hid, recipeId: rid, data })
+          }}
         />
       )}
     </div>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/recipes/$rid/edit")({
+  component: EditRecipe,
+})

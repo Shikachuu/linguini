@@ -26,6 +26,7 @@ describe("CookDialog", () => {
     server.use(
       http.post("*/api/households/h1/recipes/r1/cook", async ({ request }) => {
         cooked = await request.json()
+
         return HttpResponse.json({
           recipe: RECIPE,
           results: [
@@ -36,6 +37,7 @@ describe("CookDialog", () => {
       }),
       http.post("*/api/households/h1/events/:eventId/undo", ({ params }) => {
         undone = String(params.eventId)
+
         return HttpResponse.json({})
       }),
       http.get("*/api/households/h1/items", () => HttpResponse.json([])),
@@ -53,7 +55,7 @@ describe("CookDialog", () => {
     expect(cooked).toEqual({ servings: 4 })
     const undoButtons = screen.getAllByRole("button", { name: "Undo" })
     expect(undoButtons).toHaveLength(1)
-    await userEvent.click(undoButtons[0]!)
+    await userEvent.click(undoButtons[0])
     expect(await screen.findByText("Undone")).toBeInTheDocument()
     expect(undone).toBe("e1")
   })

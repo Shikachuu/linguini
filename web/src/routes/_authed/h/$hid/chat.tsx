@@ -2,13 +2,10 @@ import { createFileRoute, Outlet, useParams } from "@tanstack/react-router"
 import { ThreadList } from "@/components/chat/thread-list"
 import { cn } from "@/lib/utils"
 
-export const Route = createFileRoute("/_authed/h/$hid/chat")({
-  component: ChatLayout,
-})
-
-function ChatLayout() {
+const ChatLayout = () => {
   const { hid } = Route.useParams()
   const { tid } = useParams({ strict: false })
+
   return (
     <div className="flex h-full min-h-0">
       <aside className={cn("w-full overflow-y-auto md:w-72 md:shrink-0 md:border-r", tid && "hidden md:block")}>
@@ -20,3 +17,7 @@ function ChatLayout() {
     </div>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/chat")({
+  component: ChatLayout,
+})

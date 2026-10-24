@@ -10,14 +10,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { errorMessage } from "@/lib/errors"
 import { dateFromInput, dateInputValue, invalidatePantry, UNITS } from "@/lib/pantry"
 
-interface ItemDialogProps {
+type ItemDialogProps = {
   hid: string
   item?: ItemOut
   trigger: ReactNode
 }
 
-export function ItemDialog({ hid, item, trigger }: ItemDialogProps) {
+export const ItemDialog = ({ hid, item, trigger }: ItemDialogProps) => {
   const [open, setOpen] = useState(false)
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -25,13 +26,21 @@ export function ItemDialog({ hid, item, trigger }: ItemDialogProps) {
         <DialogHeader>
           <DialogTitle>{item ? `Edit ${item.name}` : "Add to pantry"}</DialogTitle>
         </DialogHeader>
-        {open && <ItemForm hid={hid} item={item} onDone={() => setOpen(false)} />}
+        {open && (
+          <ItemForm
+            hid={hid}
+            item={item}
+            onDone={() => {
+              setOpen(false)
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
 }
 
-function ItemForm({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: () => void }) {
+const ItemForm = ({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: () => void }) => {
   const queryClient = useQueryClient()
   const [name, setName] = useState(item?.name ?? "")
   const [quantity, setQuantity] = useState(item ? String(item.quantity) : "")
@@ -44,14 +53,16 @@ function ItemForm({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: 
   const pending = add.isPending || patch.isPending
   const error = add.error ?? patch.error
 
-  function submit(event: FormEvent) {
+  const submit = (event: FormEvent) => {
     event.preventDefault()
+
     const fields = {
       quantity: Number(quantity),
       unit: unit.trim(),
       expires_at: dateFromInput(expires),
       notes: notes.trim() || null,
     }
+
     if (item) patch.mutate({ householdId: hid, itemId: item.id, data: fields })
     else add.mutate({ householdId: hid, data: { name: name.trim(), ...fields } })
   }
@@ -61,7 +72,15 @@ function ItemForm({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: 
       {!item && (
         <div className="grid gap-1.5">
           <Label htmlFor="item-name">Name</Label>
-          <Input id="item-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} />
+          <Input
+            id="item-name"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value)
+            }}
+            required
+            maxLength={80}
+          />
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">
@@ -74,13 +93,23 @@ function ItemForm({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: 
             min={0}
             step="any"
             value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            onChange={(e) => {
+              setQuantity(e.target.value)
+            }}
             required
           />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="item-unit">Unit</Label>
-          <Input id="item-unit" list="units" value={unit} onChange={(e) => setUnit(e.target.value)} required />
+          <Input
+            id="item-unit"
+            list="units"
+            value={unit}
+            onChange={(e) => {
+              setUnit(e.target.value)
+            }}
+            required
+          />
           <datalist id="units">
             {UNITS.map((u) => (
               <option key={u} value={u} />
@@ -90,11 +119,25 @@ function ItemForm({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: 
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="item-expires">Expires</Label>
-        <Input id="item-expires" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} />
+        <Input
+          id="item-expires"
+          type="date"
+          value={expires}
+          onChange={(e) => {
+            setExpires(e.target.value)
+          }}
+        />
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="item-notes">Notes</Label>
-        <Textarea id="item-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        <Textarea
+          id="item-notes"
+          value={notes}
+          onChange={(e) => {
+            setNotes(e.target.value)
+          }}
+          rows={2}
+        />
       </div>
       {error && (
         <p role="alert" className="text-sm text-destructive">

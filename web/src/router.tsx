@@ -4,21 +4,24 @@ import { getMeQueryKey } from "@/api/gen/endpoints/auth/auth"
 import { isUnauthorized } from "@/lib/errors"
 import { routeTree } from "./routeTree.gen"
 
-export interface RouterContext {
+export type RouterContext = {
   queryClient: QueryClient
 }
 
-export function createAppRouter(history?: RouterHistory) {
+export const createAppRouter = (history?: RouterHistory) => {
   const sessionQueryHash = hashKey(getMeQueryKey())
+
   const redirectToLoginOnUnauthorized = (error: unknown) => {
     if (!isUnauthorized(error) || router.state.location.pathname === "/login") return
     queryClient.clear()
     void router.navigate({ to: "/login", search: { return_to: router.state.location.href } })
   }
+
   const queryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: (error, query) => {
         const routeGuardsHandleIt = query.queryHash === sessionQueryHash
+
         if (!routeGuardsHandleIt) redirectToLoginOnUnauthorized(error)
       },
     }),
@@ -27,6 +30,7 @@ export function createAppRouter(history?: RouterHistory) {
       queries: { staleTime: 30_000, retry: (count, error) => !isUnauthorized(error) && count < 2 },
     },
   })
+
   const router = createRouter({
     routeTree,
     history,
@@ -35,6 +39,7 @@ export function createAppRouter(history?: RouterHistory) {
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,
   })
+
   return router
 }
 

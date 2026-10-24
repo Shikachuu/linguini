@@ -6,14 +6,11 @@ import { RecipeForm } from "@/components/recipes/recipe-form"
 import { errorMessage } from "@/lib/errors"
 import { invalidateRecipes } from "@/lib/recipes"
 
-export const Route = createFileRoute("/_authed/h/$hid/recipes/new")({
-  component: NewRecipe,
-})
-
-function NewRecipe() {
+const NewRecipe = () => {
   const { hid } = Route.useParams()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+
   const create = useCreateRecipe({
     mutation: {
       onSuccess: async (recipe) => {
@@ -22,14 +19,21 @@ function NewRecipe() {
       },
     },
   })
+
   return (
     <div className="mx-auto max-w-2xl pb-6">
       <PageHeader title="New recipe" />
       <RecipeForm
         pending={create.isPending}
         error={create.error ? errorMessage(create.error) : undefined}
-        onSubmit={(data) => create.mutate({ householdId: hid, data })}
+        onSubmit={(data) => {
+          create.mutate({ householdId: hid, data })
+        }}
       />
     </div>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/recipes/new")({
+  component: NewRecipe,
+})

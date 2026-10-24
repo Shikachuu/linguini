@@ -19,16 +19,19 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { errorMessage } from "@/lib/errors"
 import { formatDate } from "@/lib/format"
 
-export function callbackErrorMessage(error: unknown): string {
+export const callbackErrorMessage = (error: unknown): string => {
   if (error instanceof ApiError) {
     if (error.status === 400) return "That address is not a valid or current sign-in result. Start again with Connect."
+
     if (error.status === 401) return "Kifli rejected the sign-in. Start again with Connect."
+
     if (error.status === 502) return "Kifli could not be reached. Try pasting the address again in a moment."
   }
+
   return errorMessage(error)
 }
 
-export function KifliCard({ hid }: { hid: string }) {
+export const KifliCard = ({ hid }: { hid: string }) => {
   const queryClient = useQueryClient()
   const status = useConnectionStatus(hid)
   const [pending, setPending] = useState<ConnectOut | null>(null)
@@ -44,6 +47,7 @@ export function KifliCard({ hid }: { hid: string }) {
       },
     },
   })
+
   const finish = useFinish({
     mutation: {
       onSuccess: async () => {
@@ -52,14 +56,16 @@ export function KifliCard({ hid }: { hid: string }) {
       },
     },
   })
+
   const disconnect = useDisconnect({ mutation: { onSuccess: refresh } })
 
-  function submit(event: FormEvent) {
+  const submit = (event: FormEvent) => {
     event.preventDefault()
     finish.mutate({ householdId: hid, data: { callback_url: callbackUrl.trim() } })
   }
 
   const s = status.data
+
   return (
     <Card>
       <CardHeader>
@@ -89,7 +95,9 @@ export function KifliCard({ hid }: { hid: string }) {
             <Input
               id="kifli-callback"
               value={callbackUrl}
-              onChange={(e) => setCallbackUrl(e.target.value)}
+              onChange={(e) => {
+                setCallbackUrl(e.target.value)
+              }}
               placeholder={`${pending.redirect_uri}?code=...`}
               required
             />
@@ -98,7 +106,13 @@ export function KifliCard({ hid }: { hid: string }) {
               <Button type="submit" disabled={finish.isPending}>
                 Finish connecting
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setPending(null)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setPending(null)
+                }}
+              >
                 Cancel
               </Button>
             </div>
@@ -107,7 +121,12 @@ export function KifliCard({ hid }: { hid: string }) {
           s && (
             <div className="flex gap-2">
               {(!s.connected || s.broken) && (
-                <Button disabled={connect.isPending} onClick={() => connect.mutate({ householdId: hid })}>
+                <Button
+                  disabled={connect.isPending}
+                  onClick={() => {
+                    connect.mutate({ householdId: hid })
+                  }}
+                >
                   {s.broken ? "Reconnect" : "Connect"}
                 </Button>
               )}
@@ -117,7 +136,9 @@ export function KifliCard({ hid }: { hid: string }) {
                   title="Disconnect Kifli?"
                   description="The chat will no longer see your orders or cart."
                   action="Disconnect"
-                  onConfirm={() => disconnect.mutate({ householdId: hid })}
+                  onConfirm={() => {
+                    disconnect.mutate({ householdId: hid })
+                  }}
                 />
               )}
             </div>

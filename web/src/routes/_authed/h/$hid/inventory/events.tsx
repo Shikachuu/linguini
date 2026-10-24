@@ -11,10 +11,6 @@ import { errorMessage } from "@/lib/errors"
 import { formatDateTime, formatQuantity } from "@/lib/format"
 import { BASE_UNIT } from "@/lib/pantry"
 
-export const Route = createFileRoute("/_authed/h/$hid/inventory/events")({
-  component: History,
-})
-
 const CAUSE_LABEL: Record<EventOut["cause"], string> = {
   manual: "Manual",
   chat: "Chat",
@@ -23,7 +19,7 @@ const CAUSE_LABEL: Record<EventOut["cause"], string> = {
   undo: "Undo",
 }
 
-function History() {
+const History = () => {
   const { hid } = Route.useParams()
   const events = useListEvents(hid, { limit: 100 })
   const items = useListItems(hid)
@@ -55,9 +51,10 @@ function History() {
   )
 }
 
-function EventRow({ hid, event, name }: { hid: string; event: EventOut; name: string }) {
+const EventRow = ({ hid, event, name }: { hid: string; event: EventOut; name: string }) => {
   const unit = BASE_UNIT[event.dimension]
   const undone = event.undone_by_event_id !== null
+
   return (
     <li className="flex items-center gap-3 px-4 py-2.5">
       <div className="min-w-0 flex-1">
@@ -74,3 +71,7 @@ function EventRow({ hid, event, name }: { hid: string; event: EventOut; name: st
     </li>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/inventory/events")({
+  component: History,
+})

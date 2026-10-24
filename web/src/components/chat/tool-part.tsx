@@ -4,9 +4,10 @@ import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/componen
 import { UndoButton } from "@/components/undo-button"
 import { changeLines, toolTitle } from "@/lib/chat"
 
-export function ToolPart({ hid, part }: { hid: string; part: ToolUIPart | DynamicToolUIPart }) {
+export const ToolPart = ({ hid, part }: { hid: string; part: ToolUIPart | DynamicToolUIPart }) => {
   const name = getToolName(part)
   const lines = part.state === "output-available" ? changeLines(part.output) : null
+
   return (
     <Tool className="mb-0">
       {part.type === "dynamic-tool" ? (

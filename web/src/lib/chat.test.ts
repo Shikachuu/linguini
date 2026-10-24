@@ -7,6 +7,7 @@ const user = (id: string, text: string): UIMessage => ({
   role: "user",
   parts: [{ type: "text", text }],
 })
+
 const assistant = (id: string, text: string): UIMessage => ({
   id,
   role: "assistant",
@@ -24,6 +25,7 @@ describe("chatRequestBody", () => {
         { type: "file", mediaType: "image/png", url: "data:," },
       ],
     }
+
     expect(chatRequestBody("t1", [user("m1", "hi"), assistant("m2", "hello"), newest])).toEqual({
       id: "t1",
       trigger: "submit-message",
@@ -40,6 +42,7 @@ describe("mergeAssistantMessages", () => {
       assistant("a2", "y"),
       user("u2", "r"),
     ])
+
     expect(merged.map((m) => m.id)).toEqual(["u1", "a1", "u2"])
     expect(merged[1]?.parts).toHaveLength(2)
   })

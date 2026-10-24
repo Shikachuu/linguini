@@ -1,7 +1,7 @@
 import type { UIMessage } from "ai"
 import { detailOf } from "@/api/fetcher"
 
-export interface ChangeLine {
+export type ChangeLine = {
   ok: boolean
   message: string
   event_id: string | null
@@ -21,13 +21,14 @@ const TOOL_TITLES: Record<string, string> = {
   cook_recipe: "Cooked a recipe",
 }
 
-export function toolTitle(name: string): string {
+export const toolTitle = (name: string): string => {
   return TOOL_TITLES[name] ?? name.replaceAll("_", " ")
 }
 
-export function chatRequestBody(id: string, messages: UIMessage[]) {
+export const chatRequestBody = (id: string, messages: UIMessage[]) => {
   const last = messages.at(-1)
   const parts = (last?.parts ?? []).flatMap((part) => (part.type === "text" ? [{ type: "text", text: part.text }] : []))
+
   return {
     id,
     trigger: "submit-message",
@@ -35,20 +36,23 @@ export function chatRequestBody(id: string, messages: UIMessage[]) {
   }
 }
 
-export function mergeAssistantMessages(messages: UIMessage[]): UIMessage[] {
+export const mergeAssistantMessages = (messages: UIMessage[]): UIMessage[] => {
   const merged: UIMessage[] = []
+
   for (const message of messages) {
     const previous = merged.at(-1)
+
     if (previous?.role === "assistant" && message.role === "assistant") {
       merged[merged.length - 1] = { ...previous, parts: [...previous.parts, ...message.parts] }
     } else {
       merged.push(message)
     }
   }
+
   return merged
 }
 
-function parseJson(text: string): unknown {
+const parseJson = (text: string): unknown => {
   try {
     return JSON.parse(text)
   } catch {
@@ -56,11 +60,11 @@ function parseJson(text: string): unknown {
   }
 }
 
-export function chatErrorMessage(error: Error): string {
+export const chatErrorMessage = (error: Error): string => {
   return detailOf(parseJson(error.message)) ?? (error.message || "The reply failed.")
 }
 
-function isChangeLine(value: unknown): value is ChangeLine {
+const isChangeLine = (value: unknown): value is ChangeLine => {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -71,11 +75,14 @@ function isChangeLine(value: unknown): value is ChangeLine {
   )
 }
 
-export function changeLines(output: unknown): ChangeLine[] | null {
+export const changeLines = (output: unknown): ChangeLine[] | null => {
   if (isChangeLine(output)) return [{ ...output, event_id: output.event_id ?? null }]
+
   if (typeof output === "object" && output !== null && "results" in output && Array.isArray(output.results)) {
     const lines = output.results.filter(isChangeLine)
-    return lines.length ? lines.map((l) => ({ ...l, event_id: l.event_id ?? null })) : null
+
+    return lines.length > 0 ? lines.map((l) => ({ ...l, event_id: l.event_id ?? null })) : null
   }
+
   return null
 }

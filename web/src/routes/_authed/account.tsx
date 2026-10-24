@@ -9,22 +9,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { errorMessage } from "@/lib/errors"
 import { loginHref, type Provider } from "@/lib/session"
 
-export const Route = createFileRoute("/_authed/account")({
-  component: Account,
-})
-
 const PROVIDER_LABEL: Record<Provider, string> = { google: "Google", apple: "Apple" }
+
 const DELETE_CONFIRMATION = "delete my account"
 
-function Account() {
+const Account = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { data: me } = useMe()
   const { data: config } = useConfig()
+
   const signOut = async () => {
     queryClient.clear()
     await navigate({ to: "/login" })
   }
+
   const logout = useLogout({ mutation: { onSuccess: signOut } })
   const deleteMe = useDeleteMe({ mutation: { onSuccess: signOut } })
 
@@ -68,7 +67,9 @@ function Account() {
             variant="outline"
             className="justify-self-start"
             disabled={logout.isPending}
-            onClick={() => logout.mutate()}
+            onClick={() => {
+              logout.mutate()
+            }}
           >
             Sign out
           </Button>
@@ -93,7 +94,9 @@ function Account() {
             description={`This cannot be undone. Type "${DELETE_CONFIRMATION}" to confirm.`}
             action="Delete account"
             typeToConfirm={DELETE_CONFIRMATION}
-            onConfirm={() => deleteMe.mutate()}
+            onConfirm={() => {
+              deleteMe.mutate()
+            }}
           />
           {deleteMe.isError && <p className="text-sm text-destructive">{errorMessage(deleteMe.error)}</p>}
         </CardContent>
@@ -101,3 +104,7 @@ function Account() {
     </main>
   )
 }
+
+export const Route = createFileRoute("/_authed/account")({
+  component: Account,
+})

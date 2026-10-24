@@ -12,15 +12,12 @@ import { errorMessage } from "@/lib/errors"
 import { formatQuantity } from "@/lib/format"
 import { invalidateRecipes } from "@/lib/recipes"
 
-export const Route = createFileRoute("/_authed/h/$hid/recipes/$rid/")({
-  component: RecipeView,
-})
-
-function RecipeView() {
+const RecipeView = () => {
   const { hid, rid } = Route.useParams()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const recipe = useGetRecipe(hid, rid)
+
   const remove = useDeleteRecipe({
     mutation: {
       onSuccess: async () => {
@@ -31,6 +28,7 @@ function RecipeView() {
   })
 
   if (recipe.isPending) return <Skeleton className="m-4 h-40" />
+
   if (recipe.isError) return <p className="p-4 text-sm text-destructive">{errorMessage(recipe.error)}</p>
   const r = recipe.data
 
@@ -55,7 +53,9 @@ function RecipeView() {
               title={`Delete ${r.title}?`}
               description="The recipe is removed for everyone in the household."
               action="Delete"
-              onConfirm={() => remove.mutate({ householdId: hid, recipeId: rid })}
+              onConfirm={() => {
+                remove.mutate({ householdId: hid, recipeId: rid })
+              }}
             />
           </>
         }
@@ -97,3 +97,7 @@ function RecipeView() {
     </article>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/recipes/$rid/")({
+  component: RecipeView,
+})

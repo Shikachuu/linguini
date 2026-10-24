@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { UNITS } from "@/lib/pantry"
 
-interface Line {
+type Line = {
   key: number
   name: string
   quantity: string
@@ -15,7 +15,7 @@ interface Line {
   optional: boolean
 }
 
-interface RecipeFormProps {
+type RecipeFormProps = {
   recipe?: RecipeOut
   pending: boolean
   error?: string
@@ -24,7 +24,7 @@ interface RecipeFormProps {
 
 let nextKey = 0
 
-function toLine(ingredient?: Ingredient): Line {
+const toLine = (ingredient?: Ingredient): Line => {
   return {
     key: nextKey++,
     name: ingredient?.name ?? "",
@@ -34,20 +34,22 @@ function toLine(ingredient?: Ingredient): Line {
   }
 }
 
-export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps) {
+export const RecipeForm = ({ recipe, pending, error, onSubmit }: RecipeFormProps) => {
   const [title, setTitle] = useState(recipe?.title ?? "")
   const [servings, setServings] = useState(String(recipe?.servings ?? 2))
+
   const [lines, setLines] = useState<Line[]>(() =>
     recipe?.ingredients.length ? recipe.ingredients.map(toLine) : [toLine()],
   )
+
   const [steps, setSteps] = useState(recipe?.steps.join("\n") ?? "")
   const [allergens, setAllergens] = useState(recipe?.allergens.join(", ") ?? "")
 
-  function update(key: number, patch: Partial<Line>) {
+  const update = (key: number, patch: Partial<Line>) => {
     setLines((current) => current.map((l) => (l.key === key ? { ...l, ...patch } : l)))
   }
 
-  function submit(event: FormEvent) {
+  const submit = (event: FormEvent) => {
     event.preventDefault()
     onSubmit({
       title: title.trim(),
@@ -75,7 +77,15 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
     <form className="grid gap-4 px-4" onSubmit={submit}>
       <div className="grid gap-1.5">
         <Label htmlFor="recipe-title">Title</Label>
-        <Input id="recipe-title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} />
+        <Input
+          id="recipe-title"
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value)
+          }}
+          required
+          maxLength={120}
+        />
       </div>
       <div className="grid w-32 gap-1.5">
         <Label htmlFor="recipe-servings">Servings</Label>
@@ -85,7 +95,9 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
           min={1}
           max={100}
           value={servings}
-          onChange={(e) => setServings(e.target.value)}
+          onChange={(e) => {
+            setServings(e.target.value)
+          }}
           required
         />
       </div>
@@ -97,7 +109,9 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
               aria-label={`Ingredient ${index + 1} name`}
               placeholder="Name"
               value={line.name}
-              onChange={(e) => update(line.key, { name: e.target.value })}
+              onChange={(e) => {
+                update(line.key, { name: e.target.value })
+              }}
               maxLength={80}
               className="min-w-0 flex-1"
             />
@@ -109,7 +123,9 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
               step="any"
               placeholder="Qty"
               value={line.quantity}
-              onChange={(e) => update(line.key, { quantity: e.target.value })}
+              onChange={(e) => {
+                update(line.key, { quantity: e.target.value })
+              }}
               required={Boolean(line.name.trim())}
               className="w-20"
             />
@@ -117,14 +133,18 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
               aria-label={`Ingredient ${index + 1} unit`}
               list="recipe-units"
               value={line.unit}
-              onChange={(e) => update(line.key, { unit: e.target.value })}
+              onChange={(e) => {
+                update(line.key, { unit: e.target.value })
+              }}
               className="w-20"
             />
             <label className="flex items-center gap-1 text-xs text-muted-foreground">
               <input
                 type="checkbox"
                 checked={line.optional}
-                onChange={(e) => update(line.key, { optional: e.target.checked })}
+                onChange={(e) => {
+                  update(line.key, { optional: e.target.checked })
+                }}
               />
               opt.
             </label>
@@ -134,7 +154,9 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
               size="icon"
               aria-label={`Remove ingredient ${index + 1}`}
               disabled={lines.length === 1}
-              onClick={() => setLines((current) => current.filter((l) => l.key !== line.key))}
+              onClick={() => {
+                setLines((current) => current.filter((l) => l.key !== line.key))
+              }}
             >
               <XIcon />
             </Button>
@@ -150,18 +172,33 @@ export function RecipeForm({ recipe, pending, error, onSubmit }: RecipeFormProps
           variant="outline"
           size="sm"
           className="justify-self-start"
-          onClick={() => setLines((current) => [...current, toLine()])}
+          onClick={() => {
+            setLines((current) => [...current, toLine()])
+          }}
         >
           <PlusIcon /> Ingredient
         </Button>
       </fieldset>
       <div className="grid gap-1.5">
         <Label htmlFor="recipe-steps">Steps, one per line</Label>
-        <Textarea id="recipe-steps" value={steps} onChange={(e) => setSteps(e.target.value)} rows={6} />
+        <Textarea
+          id="recipe-steps"
+          value={steps}
+          onChange={(e) => {
+            setSteps(e.target.value)
+          }}
+          rows={6}
+        />
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="recipe-allergens">Allergens, comma separated</Label>
-        <Input id="recipe-allergens" value={allergens} onChange={(e) => setAllergens(e.target.value)} />
+        <Input
+          id="recipe-allergens"
+          value={allergens}
+          onChange={(e) => {
+            setAllergens(e.target.value)
+          }}
+        />
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" disabled={pending} className="justify-self-start">

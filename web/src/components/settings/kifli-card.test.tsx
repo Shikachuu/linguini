@@ -7,6 +7,7 @@ import { renderWithClient } from "@/test/render"
 import { server } from "@/test/server"
 
 const BASE = "*/api/households/h1/kifli"
+
 const CONNECT = {
   authorize_url: "https://shop.example/authorize?state=s",
   redirect_uri: "http://localhost:3334/oauth/callback",
@@ -24,6 +25,7 @@ describe("KifliCard", () => {
       http.post(`${BASE}/callback`, async ({ request }) => {
         pasted = await request.json()
         connected = true
+
         return HttpResponse.json({ connected: true, connected_at: "2026-10-01T10:00:00Z" })
       }),
     )

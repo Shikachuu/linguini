@@ -9,14 +9,11 @@ import { Label } from "@/components/ui/label"
 import { errorMessage } from "@/lib/errors"
 import { refreshMe } from "@/lib/session"
 
-export const Route = createFileRoute("/_authed/welcome")({
-  component: Welcome,
-})
-
-function Welcome() {
+const Welcome = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [name, setName] = useState("")
+
   const create = useCreateHousehold({
     mutation: {
       onSuccess: async (household) => {
@@ -47,7 +44,9 @@ function Welcome() {
             <Input
               id="household-name"
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value)
+              }}
               placeholder="Home"
               required
               maxLength={80}
@@ -62,3 +61,7 @@ function Welcome() {
     </main>
   )
 }
+
+export const Route = createFileRoute("/_authed/welcome")({
+  component: Welcome,
+})

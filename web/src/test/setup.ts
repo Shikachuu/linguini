@@ -10,7 +10,9 @@ class NoopResizeObserver {
 }
 
 vi.stubGlobal("ResizeObserver", NoopResizeObserver)
+
 vi.stubGlobal("scrollTo", () => {})
+
 vi.stubGlobal(
   "matchMedia",
   (query: string): MediaQueryList =>
@@ -26,9 +28,15 @@ vi.stubGlobal(
     }) satisfies MediaQueryList,
 )
 
-beforeAll(() => server.listen({ onUnhandledFrame: "error" }))
+beforeAll(() => {
+  server.listen({ onUnhandledFrame: "error" })
+})
+
 afterEach(() => {
   cleanup()
   server.resetHandlers()
 })
-afterAll(() => server.close())
+
+afterAll(() => {
+  server.close()
+})

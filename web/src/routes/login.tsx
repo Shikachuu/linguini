@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { loginHref, type Provider } from "@/lib/session"
 
-interface LoginSearch {
+type LoginSearch = {
   return_to?: string
   invite?: string
   login_error?: string
@@ -21,23 +21,11 @@ const LOGIN_ERRORS: Record<string, string> = {
   access_denied: "Sign-in was cancelled.",
 }
 
-function loginErrorMessage(reason: string): string {
+const loginErrorMessage = (reason: string): string => {
   return LOGIN_ERRORS[reason] ?? `Sign-in failed: ${reason}`
 }
 
-export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): LoginSearch => {
-    const result: LoginSearch = {}
-    for (const key of ["return_to", "invite", "login_error"] as const) {
-      const value = search[key]
-      if (typeof value === "string" && value) result[key] = value
-    }
-    return result
-  },
-  component: Login,
-})
-
-export function Login() {
+export const Login = () => {
   const { return_to, invite, login_error } = Route.useSearch()
   const { data: config, isPending, isError } = useConfig()
   const enabled = PROVIDERS.filter((p) => config?.providers[p.id])
@@ -72,3 +60,18 @@ export function Login() {
     </main>
   )
 }
+
+export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>): LoginSearch => {
+    const result: LoginSearch = {}
+
+    for (const key of ["return_to", "invite", "login_error"] as const) {
+      const value = search[key]
+
+      if (typeof value === "string" && value) result[key] = value
+    }
+
+    return result
+  },
+  component: Login,
+})

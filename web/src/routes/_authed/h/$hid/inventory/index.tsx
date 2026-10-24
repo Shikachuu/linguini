@@ -15,11 +15,7 @@ import { errorMessage } from "@/lib/errors"
 import { formatQuantity } from "@/lib/format"
 import { freshness, invalidatePantry } from "@/lib/pantry"
 
-export const Route = createFileRoute("/_authed/h/$hid/inventory/")({
-  component: Pantry,
-})
-
-function Pantry() {
+const Pantry = () => {
   const { hid } = Route.useParams()
   const [search, setSearch] = useState("")
   const q = useDeferredValue(search.trim())
@@ -52,7 +48,9 @@ function Pantry() {
           type="search"
           placeholder="Search the pantry"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+          }}
           maxLength={80}
         />
       </div>
@@ -72,12 +70,15 @@ function Pantry() {
   )
 }
 
-function ItemRow({ hid, item }: { hid: string; item: ItemOut }) {
+const ItemRow = ({ hid, item }: { hid: string; item: ItemOut }) => {
   const queryClient = useQueryClient()
+
   const remove = useDeleteItem({
     mutation: { onSuccess: () => invalidatePantry(queryClient, hid) },
   })
+
   const fresh = freshness(item)
+
   return (
     <li className="flex items-center gap-3 px-4 py-2.5">
       <div className="min-w-0 flex-1">
@@ -108,13 +109,15 @@ function ItemRow({ hid, item }: { hid: string; item: ItemOut }) {
         title={`Delete ${item.name}?`}
         description="This removes the item and its history. It cannot be undone."
         action="Delete"
-        onConfirm={() => remove.mutate({ householdId: hid, itemId: item.id })}
+        onConfirm={() => {
+          remove.mutate({ householdId: hid, itemId: item.id })
+        }}
       />
     </li>
   )
 }
 
-function ListSkeleton() {
+const ListSkeleton = () => {
   return (
     <div className="flex flex-col gap-2 px-4">
       {[0, 1, 2].map((i) => (
@@ -123,3 +126,7 @@ function ListSkeleton() {
     </div>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/inventory/")({
+  component: Pantry,
+})

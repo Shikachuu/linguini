@@ -9,8 +9,9 @@ import { server } from "@/test/server"
 
 const CHAT_URL = "*/api/households/h1/threads/t1/chat"
 
-function sse(...chunks: object[]): Response {
+const sse = (...chunks: object[]): Response => {
   const body = [...chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`), "data: [DONE]\n\n"].join("")
+
   return new HttpResponse(body, {
     headers: { "content-type": "text/event-stream", "x-vercel-ai-ui-message-stream": "v1" },
   })
@@ -22,6 +23,7 @@ describe("ChatView", () => {
     server.use(
       http.post(CHAT_URL, async ({ request: r }) => {
         request = { headers: r.headers, body: await r.json() }
+
         return sse(
           { type: "start" },
           { type: "text-start", id: "x" },

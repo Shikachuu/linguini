@@ -7,7 +7,7 @@ import { createAppRouter } from "./router"
 
 const router = createAppRouter()
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.querySelector("#root")!).render(
   <StrictMode>
     <QueryClientProvider client={router.options.context.queryClient}>
       <RouterProvider router={router} />

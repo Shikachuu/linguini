@@ -19,7 +19,7 @@ import { UndoButton } from "@/components/undo-button"
 import { errorMessage } from "@/lib/errors"
 import { invalidatePantry } from "@/lib/pantry"
 
-export function CookDialog({ hid, recipe }: { hid: string; recipe: RecipeOut }) {
+export const CookDialog = ({ hid, recipe }: { hid: string; recipe: RecipeOut }) => {
   const queryClient = useQueryClient()
   const [servings, setServings] = useState(String(recipe.servings))
   const cook = useCookRecipe({ mutation: { onSuccess: () => invalidatePantry(queryClient, hid) } })
@@ -77,7 +77,9 @@ export function CookDialog({ hid, recipe }: { hid: string; recipe: RecipeOut }) 
                 min={1}
                 max={100}
                 value={servings}
-                onChange={(e) => setServings(e.target.value)}
+                onChange={(e) => {
+                  setServings(e.target.value)
+                }}
                 required
               />
             </div>

@@ -26,10 +26,11 @@ const NAV = [
   { to: "/h/$hid/settings", label: "Settings", icon: SettingsIcon },
 ] as const
 
-function HouseholdSwitcher({ hid }: { hid: string }) {
+const HouseholdSwitcher = ({ hid }: { hid: string }) => {
   const { data: me } = useMe()
   const navigate = useNavigate()
   const current = me?.households.find((h) => h.id === hid)
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -53,7 +54,7 @@ function HouseholdSwitcher({ hid }: { hid: string }) {
   )
 }
 
-export function AppShell({ hid, children }: { hid: string; children: ReactNode }) {
+export const AppShell = ({ hid, children }: { hid: string; children: ReactNode }) => {
   return (
     <div className="flex h-dvh flex-col md:flex-row">
       <aside className="hidden w-56 shrink-0 flex-col gap-1 border-r p-3 md:flex">
@@ -106,7 +107,7 @@ export function AppShell({ hid, children }: { hid: string; children: ReactNode }
   )
 }
 
-export function PageHeader({ title, actions }: { title: ReactNode; actions?: ReactNode }) {
+export const PageHeader = ({ title, actions }: { title: ReactNode; actions?: ReactNode }) => {
   return (
     <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
       <h1 className="truncate text-xl font-semibold">{title}</h1>

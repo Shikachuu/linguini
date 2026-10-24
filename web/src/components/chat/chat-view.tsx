@@ -24,13 +24,13 @@ import { chatErrorMessage, chatRequestBody } from "@/lib/chat"
 import { invalidatePantry } from "@/lib/pantry"
 import { invalidateRecipes } from "@/lib/recipes"
 
-interface ChatViewProps {
+type ChatViewProps = {
   hid: string
   tid: string
   initialMessages: UIMessage[]
 }
 
-export function chatTransport(hid: string, tid: string) {
+export const chatTransport = (hid: string, tid: string) => {
   return new DefaultChatTransport({
     api: `/api/households/${hid}/threads/${tid}/chat`,
     headers: () => Object.fromEntries(apiHeaders("POST")),
@@ -39,9 +39,10 @@ export function chatTransport(hid: string, tid: string) {
   })
 }
 
-export function ChatView({ hid, tid, initialMessages }: ChatViewProps) {
+export const ChatView = ({ hid, tid, initialMessages }: ChatViewProps) => {
   const queryClient = useQueryClient()
   const transport = useMemo(() => chatTransport(hid, tid), [hid, tid])
+
   const { messages, sendMessage, status, stop } = useChat({
     id: tid,
     messages: initialMessages,
@@ -56,6 +57,7 @@ export function ChatView({ hid, tid, initialMessages }: ChatViewProps) {
     },
     onError: (error) => toast.error(chatErrorMessage(error)),
   })
+
   const busy = status === "submitted" || status === "streaming"
 
   return (
@@ -81,9 +83,11 @@ export function ChatView({ hid, tid, initialMessages }: ChatViewProps) {
                         </p>
                       )
                     }
+
                     if (isToolUIPart(part)) {
                       return <ToolPart key={index} hid={hid} part={part} />
                     }
+
                     return null
                   })}
                 </MessageContent>

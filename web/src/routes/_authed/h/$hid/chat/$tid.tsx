@@ -12,21 +12,19 @@ import { mergeAssistantMessages } from "@/lib/chat"
 import { errorMessage } from "@/lib/errors"
 import { invalidatePantry } from "@/lib/pantry"
 
-export const Route = createFileRoute("/_authed/h/$hid/chat/$tid")({
-  component: Thread,
-})
-
-function Thread() {
+const Thread = () => {
   const { hid, tid } = Route.useParams()
   const queryClient = useQueryClient()
+
   const thread = useGetThread(hid, tid, {
     query: { staleTime: Infinity, refetchOnWindowFocus: false },
   })
+
   const undoTurn = useUndoLastTurn({
     mutation: {
       onSuccess: async (events) => {
         await invalidatePantry(queryClient, hid)
-        toast.success(events.length ? `Undid ${events.length} pantry changes` : "Nothing to undo")
+        toast.success(events.length > 0 ? `Undid ${events.length} pantry changes` : "Nothing to undo")
       },
       onError: (error) => toast.error(errorMessage(error)),
     },
@@ -45,7 +43,9 @@ function Thread() {
           variant="ghost"
           size="sm"
           disabled={undoTurn.isPending}
-          onClick={() => undoTurn.mutate({ householdId: hid, params: { thread_id: tid } })}
+          onClick={() => {
+            undoTurn.mutate({ householdId: hid, params: { thread_id: tid } })
+          }}
         >
           <Undo2Icon /> Undo last turn
         </Button>
@@ -63,3 +63,7 @@ function Thread() {
     </div>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/chat/$tid")({
+  component: Thread,
+})

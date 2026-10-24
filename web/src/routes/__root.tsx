@@ -3,11 +3,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { RouterContext } from "@/router"
 
-export const Route = createRootRouteWithContext<RouterContext>()({
-  component: Root,
-})
-
-function Root() {
+const Root = () => {
   return (
     <TooltipProvider>
       <Outlet />
@@ -15,3 +11,7 @@ function Root() {
     </TooltipProvider>
   )
 }
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  component: Root,
+})

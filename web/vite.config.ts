@@ -25,6 +25,10 @@ export default defineConfig({
         files: ["src/routes/**"],
         rules: { "react/only-export-components": "off" },
       },
+      {
+        files: ["src/router.tsx"],
+        rules: { "typescript/consistent-type-definitions": "off" },
+      },
     ],
     options: {
       typeAware: true,

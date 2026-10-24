@@ -6,17 +6,19 @@ import { describe, expect, it } from "vite-plus/test"
 import { createAppRouter } from "@/router"
 import { server } from "@/test/server"
 
-function renderAt(path: string) {
+const renderAt = (path: string) => {
   const router = createAppRouter(createMemoryHistory({ initialEntries: [path] }))
   render(
     <QueryClientProvider client={router.options.context.queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
   )
+
   return router
 }
 
 const signedOut = http.get("*/api/me", () => HttpResponse.json({ detail: "Not signed in" }, { status: 401 }))
+
 const config = (google: boolean, apple: boolean) =>
   http.get("*/api/config", () => HttpResponse.json({ providers: { google, apple }, locale: "hu-HU" }))
 
@@ -63,7 +65,9 @@ describe("routing", () => {
       http.get("*/api/households/h2/threads", () => HttpResponse.json([])),
     )
     const router = renderAt("/")
-    await waitFor(() => expect(router.state.location.pathname).toBe("/h/h2/chat"))
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/h/h2/chat")
+    })
     expect(await screen.findByText("No chats yet.")).toBeInTheDocument()
   })
 })

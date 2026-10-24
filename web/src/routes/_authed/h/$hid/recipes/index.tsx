@@ -9,11 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { errorMessage } from "@/lib/errors"
 
-export const Route = createFileRoute("/_authed/h/$hid/recipes/")({
-  component: Recipes,
-})
-
-function Recipes() {
+const Recipes = () => {
   const { hid } = Route.useParams()
   const [search, setSearch] = useState("")
   const q = useDeferredValue(search.trim())
@@ -36,7 +32,9 @@ function Recipes() {
           type="search"
           placeholder="Search by title or ingredient"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+          }}
         />
       </div>
       {recipes.isPending && <Skeleton className="mx-4 h-10" />}
@@ -64,3 +62,7 @@ function Recipes() {
     </div>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/recipes/")({
+  component: Recipes,
+})

@@ -23,12 +23,9 @@ import { errorMessage } from "@/lib/errors"
 import { formatDate, formatDateTime } from "@/lib/format"
 import { refreshMe } from "@/lib/session"
 
-export const Route = createFileRoute("/_authed/h/$hid/settings")({
-  component: Settings,
-})
-
-function Settings() {
+const Settings = () => {
   const { hid } = Route.useParams()
+
   return (
     <div className="mx-auto grid max-w-2xl gap-4 pb-6">
       <PageHeader title="Settings" />
@@ -41,11 +38,12 @@ function Settings() {
   )
 }
 
-function HouseholdCard({ hid }: { hid: string }) {
+const HouseholdCard = ({ hid }: { hid: string }) => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const household = useGetHousehold(hid)
   const [name, setName] = useState<string | null>(null)
+
   const rename = useRenameHousehold({
     mutation: {
       onSuccess: async () => {
@@ -55,6 +53,7 @@ function HouseholdCard({ hid }: { hid: string }) {
       },
     },
   })
+
   const remove = useDeleteHousehold({
     mutation: {
       onSuccess: async () => {
@@ -63,6 +62,7 @@ function HouseholdCard({ hid }: { hid: string }) {
       },
     },
   })
+
   const value = name ?? household.data?.name ?? ""
 
   return (
@@ -81,7 +81,9 @@ function HouseholdCard({ hid }: { hid: string }) {
           <Input
             aria-label="Household name"
             value={value}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value)
+            }}
             maxLength={80}
             required
           />
@@ -100,19 +102,22 @@ function HouseholdCard({ hid }: { hid: string }) {
           description="This deletes the pantry, recipes, chats and Kifli connection for every member."
           action="Delete"
           typeToConfirm={household.data?.name}
-          onConfirm={() => remove.mutate({ householdId: hid })}
+          onConfirm={() => {
+            remove.mutate({ householdId: hid })
+          }}
         />
       </CardContent>
     </Card>
   )
 }
 
-function MembersCard({ hid }: { hid: string }) {
+const MembersCard = ({ hid }: { hid: string }) => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { data: me } = useMe()
   const members = useListMembers(hid)
   const invite = useCreateInvite()
+
   const remove = useRemoveMember({
     mutation: {
       onSuccess: async (_, { userId }) => {
@@ -126,7 +131,7 @@ function MembersCard({ hid }: { hid: string }) {
     },
   })
 
-  async function copy(url: string) {
+  const copy = async (url: string) => {
     await navigator.clipboard.writeText(url)
     toast.success("Invite link copied")
   }
@@ -160,7 +165,9 @@ function MembersCard({ hid }: { hid: string }) {
                     : "They can rejoin only with a new invite link."
                 }
                 action={m.user_id === me?.id ? "Leave" : "Remove"}
-                onConfirm={() => remove.mutate({ householdId: hid, userId: m.user_id })}
+                onConfirm={() => {
+                  remove.mutate({ householdId: hid, userId: m.user_id })
+                }}
               />
             </li>
           ))}
@@ -168,7 +175,14 @@ function MembersCard({ hid }: { hid: string }) {
         {invite.data ? (
           <div className="grid gap-1">
             <div className="flex gap-2">
-              <Input readOnly value={invite.data.url} aria-label="Invite link" onFocus={(e) => e.target.select()} />
+              <Input
+                readOnly
+                value={invite.data.url}
+                aria-label="Invite link"
+                onFocus={(e) => {
+                  e.target.select()
+                }}
+              />
               <Button
                 variant="outline"
                 size="icon"
@@ -187,7 +201,9 @@ function MembersCard({ hid }: { hid: string }) {
             variant="outline"
             className="justify-self-start"
             disabled={invite.isPending}
-            onClick={() => invite.mutate({ householdId: hid })}
+            onClick={() => {
+              invite.mutate({ householdId: hid })
+            }}
           >
             Create invite link
           </Button>
@@ -197,3 +213,7 @@ function MembersCard({ hid }: { hid: string }) {
     </Card>
   )
 }
+
+export const Route = createFileRoute("/_authed/h/$hid/settings")({
+  component: Settings,
+})

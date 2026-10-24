@@ -4,6 +4,17 @@ import { Button } from "@/components/ui/button"
 import { errorMessage, isUnauthorized } from "@/lib/errors"
 import { loadMe, refreshMe } from "@/lib/session"
 
+const InviteError = ({ error }: { error: unknown }) => {
+  return (
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-4 text-center">
+      <p>This invite could not be used: {errorMessage(error)}</p>
+      <Button asChild variant="outline">
+        <Link to="/">Go home</Link>
+      </Button>
+    </main>
+  )
+}
+
 export const Route = createFileRoute("/invite/$code")({
   beforeLoad: async ({ context, params }) => {
     await loadMe(context.queryClient).catch((error: unknown) => {
@@ -16,14 +27,3 @@ export const Route = createFileRoute("/invite/$code")({
   },
   errorComponent: InviteError,
 })
-
-function InviteError({ error }: { error: unknown }) {
-  return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-4 text-center">
-      <p>This invite could not be used: {errorMessage(error)}</p>
-      <Button asChild variant="outline">
-        <Link to="/">Go home</Link>
-      </Button>
-    </main>
-  )
-}

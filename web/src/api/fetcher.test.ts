@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test"
 import { ApiError, apiFetch } from "./fetcher"
 
-function stubFetch(response: Response) {
+const stubFetch = (response: Response) => {
   const spy = vi.fn<typeof fetch>().mockResolvedValue(response)
   vi.stubGlobal("fetch", spy)
+
   return spy
 }
 
-function sentHeaders(spy: ReturnType<typeof stubFetch>): Headers {
+const sentHeaders = (spy: ReturnType<typeof stubFetch>): Headers => {
   return new Headers(spy.mock.calls[0]?.[1]?.headers)
 }
 

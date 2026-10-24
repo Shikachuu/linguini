@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 
-interface ConfirmProps {
+type ConfirmProps = {
   trigger: ReactNode
   title: string
   description: ReactNode
@@ -21,10 +21,15 @@ interface ConfirmProps {
   typeToConfirm?: string
 }
 
-export function Confirm({ trigger, title, description, action, onConfirm, typeToConfirm }: ConfirmProps) {
+export const Confirm = ({ trigger, title, description, action, onConfirm, typeToConfirm }: ConfirmProps) => {
   const [typed, setTyped] = useState("")
+
   return (
-    <AlertDialog onOpenChange={() => setTyped("")}>
+    <AlertDialog
+      onOpenChange={() => {
+        setTyped("")
+      }}
+    >
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -36,7 +41,9 @@ export function Confirm({ trigger, title, description, action, onConfirm, typeTo
             aria-label={`Type ${typeToConfirm} to confirm`}
             placeholder={typeToConfirm}
             value={typed}
-            onChange={(event) => setTyped(event.target.value)}
+            onChange={(event) => {
+              setTyped(event.target.value)
+            }}
           />
         )}
         <AlertDialogFooter>

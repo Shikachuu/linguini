@@ -5,21 +5,26 @@ import { Button } from "@/components/ui/button"
 import { errorMessage } from "@/lib/errors"
 import { invalidatePantry } from "@/lib/pantry"
 
-export function UndoButton({ hid, eventId }: { hid: string; eventId: string }) {
+export const UndoButton = ({ hid, eventId }: { hid: string; eventId: string }) => {
   const queryClient = useQueryClient()
+
   const undo = useUndoEvent({
     mutation: {
       onSuccess: () => invalidatePantry(queryClient, hid),
       onError: (error) => toast.error(errorMessage(error)),
     },
   })
+
   if (undo.isSuccess) return <span className="text-xs text-muted-foreground">Undone</span>
+
   return (
     <Button
       variant="outline"
       size="xs"
       disabled={undo.isPending}
-      onClick={() => undo.mutate({ householdId: hid, eventId })}
+      onClick={() => {
+        undo.mutate({ householdId: hid, eventId })
+      }}
     >
       Undo
     </Button>

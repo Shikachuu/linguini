@@ -27,6 +27,7 @@ describe("ItemDialog", () => {
     server.use(
       http.post("*/api/households/h1/items", async ({ request }) => {
         sent = await request.json()
+
         return HttpResponse.json(ITEM, { status: 201 })
       }),
     )
