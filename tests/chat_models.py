@@ -42,9 +42,11 @@ class Scripted:
     seen: list[list[ModelMessage]] = field(default_factory=list)
     retries: list[str] = field(default_factory=list)
     gate: asyncio.Event | None = None
+    settings_seen: list[object] = field(default_factory=list)
 
     async def stream(self, messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str | DeltaToolCalls]:
         self.seen.append(list(messages))
+        self.settings_seen.append(info.model_settings)
         prompt = last_user_text(messages)
         last = messages[-1]
         if retries := retry_parts(last):

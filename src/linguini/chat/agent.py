@@ -81,6 +81,17 @@ def build_model(settings: Settings) -> Model:
     return OpenAIChatModel(settings.model, provider=provider, profile=profile)
 
 
+def session_settings(settings: Settings, session_id: str) -> ModelSettings | None:
+    """Per-conversation request headers for servers that route or cache by session.
+
+    Returns:
+        Settings adding the session header, or None when no header is configured.
+    """
+    if settings.session_header is None:
+        return None
+    return ModelSettings(extra_headers={settings.session_header: session_id})
+
+
 def build_agent(model: Model, capabilities: Sequence[AbstractCapability[AgentDeps]] = ()) -> Agent[AgentDeps, str]:
     """Create the household agent bound to ``model``.
 

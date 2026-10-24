@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelSettings
 from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart, UserPromptPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
@@ -192,3 +192,16 @@ def test_inventory_snapshot_caps_lines_and_prefers_expiry() -> None:
 
 def test_title_is_trimmed_to_sixty_characters() -> None:
     assert len(history.title_from("x" * 100)) == 60
+
+
+async def test_summarizer_gets_the_session_settings(db: Database) -> None:
+    thread_id, _ = await seed_thread(db, 8)
+    seen: list[object] = []
+
+    def capture(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        seen.append(info.model_settings)
+        return ModelResponse(parts=[TextPart("S")])
+
+    settings = ModelSettings(extra_headers={"x-opencode-session": f"{thread_id}:summary"})
+    assert await history.summarize_if_needed(db, thread_id, Agent(FunctionModel(capture)), 1, settings)
+    assert seen == [settings]

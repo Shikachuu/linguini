@@ -193,3 +193,18 @@ def test_interrupted_runs_are_failed_at_startup(settings: Settings, scripted: Sc
     with TestClient(create_app(settings, model=scripted.model())):
         pass
     assert runs(settings)[0][0] == "failed" and runs(settings)[0][2] is not None
+
+
+def test_session_header_carries_the_thread_id(settings: Settings) -> None:
+    scripted = Scripted()
+    app = create_app(
+        settings.model_copy(update={"session_header": "x-opencode-session"}),
+        model=scripted.model(),
+        summary_model=TestModel(),
+    )
+    with TestClient(app) as client:
+        login_google(client, "alice")
+        home = client.post("/api/households", json={"name": "Home"}, headers=CSRF_HEADERS).json()["id"]
+        thread = client.post(f"/api/households/{home}/threads", json={}, headers=CSRF_HEADERS).json()["id"]
+        chat(client, home, thread, "hi")
+    assert scripted.settings_seen == [{"temperature": 0.4, "extra_headers": {"x-opencode-session": thread}}]

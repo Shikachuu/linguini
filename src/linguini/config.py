@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     model_profile: dict[str, bool] = Field(
         default_factory=dict, description="Model profile overrides for picky servers"
     )
+    session_header: str | None = Field(
+        default=None, description="Header carrying a stable per-thread id, e.g. x-opencode-session for OpenCode Go"
+    )
 
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None

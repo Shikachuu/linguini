@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from pydantic_ai import Agent, ModelMessage, ModelMessagesTypeAdapter, UsageLimits
+from pydantic_ai import Agent, ModelMessage, ModelMessagesTypeAdapter, ModelSettings, UsageLimits
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -131,7 +131,13 @@ def render_for_summary(messages: Sequence[ModelMessage]) -> str:
     return "\n".join(lines)
 
 
-async def summarize_if_needed(db: Database, thread_id: uuid.UUID, summarizer: Agent[None, str], budget: int) -> bool:
+async def summarize_if_needed(
+    db: Database,
+    thread_id: uuid.UUID,
+    summarizer: Agent[None, str],
+    budget: int,
+    model_settings: ModelSettings | None = None,
+) -> bool:
     """Fold older runs into the thread summary when the history exceeds ``budget`` tokens.
 
     A failing or slow summarizer is logged and skipped so the chat still answers.
@@ -145,7 +151,7 @@ async def summarize_if_needed(db: Database, thread_id: uuid.UUID, summarizer: Ag
     previous, runs = folded
     try:
         async with asyncio.timeout(SUMMARY_TIMEOUT):
-            summary = await _fold(summarizer, previous, runs)
+            summary = await _fold(summarizer, previous, runs, model_settings)
     except Exception:
         log.exception("summarizing thread %s failed; continuing without a new summary", thread_id)
         return False
@@ -168,10 +174,12 @@ async def _runs_to_fold(db: Database, thread_id: uuid.UUID, budget: int) -> tupl
     return previous, runs[:-KEEP_RECENT_RUNS]
 
 
-async def _fold(summarizer: Agent[None, str], previous: str | None, runs: Sequence[Run]) -> str:
+async def _fold(
+    summarizer: Agent[None, str], previous: str | None, runs: Sequence[Run], model_settings: ModelSettings | None
+) -> str:
     text = render_for_summary(thread_messages(runs))
     prompt = (f"Earlier summary:\n{previous}\n\n" if previous else "") + "Conversation:\n" + text
-    result = await summarizer.run(prompt, usage_limits=SUMMARY_LIMITS)
+    result = await summarizer.run(prompt, usage_limits=SUMMARY_LIMITS, model_settings=model_settings)
     return result.output
 
 

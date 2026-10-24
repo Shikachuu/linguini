@@ -24,7 +24,7 @@ from sqlmodel import col, select
 
 from linguini.auth.sessions import CurrentAuth
 from linguini.chat import history
-from linguini.chat.agent import RUN_TIMEOUT, USAGE_LIMITS
+from linguini.chat.agent import RUN_TIMEOUT, USAGE_LIMITS, session_settings
 from linguini.chat.deps import AgentDeps
 from linguini.config import Settings
 from linguini.db import Database, ReadSession, WriteSession, get_database, utcnow
@@ -207,7 +207,13 @@ async def chat(
     try:
         async with db.read_session() as session:
             thread = await _get_thread(session, household.id, thread_id)
-        await history.summarize_if_needed(db, thread_id, request.app.state.summarizer, settings.history_token_budget)
+        await history.summarize_if_needed(
+            db,
+            thread_id,
+            request.app.state.summarizer,
+            settings.history_token_budget,
+            session_settings(settings, f"{thread_id}:summary"),
+        )
         async with db.read_session() as session:
             model_history = await history.model_history(session, thread)
             members = [u.display_name for u, _ in await households.members(session, household.id)]
@@ -244,6 +250,7 @@ async def chat(
             deps=deps,
             usage_limits=USAGE_LIMITS,
             timeout=RUN_TIMEOUT,
+            model_settings=session_settings(settings, str(thread_id)),
             on_complete=bookkeeper.on_complete,
             on_cancel=bookkeeper.on_cancel,
         )

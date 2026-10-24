@@ -91,6 +91,7 @@ Every setting is an environment variable with the `LINGUINI_` prefix. Docker sec
 | `OPENAI_API_KEY` | depends | API key for that server; local servers often ignore it. |
 | `SUMMARY_MODEL` | no | Cheaper model used to summarize long threads. Defaults to `MODEL`. |
 | `MODEL_PROFILE` | no | JSON object of overrides for picky servers, e.g. `{"strict_tools": false}`. |
+| `SESSION_HEADER` | no | Header that carries the thread id on every model call, for servers that route or cache by conversation. OpenCode Go requires `x-opencode-session`. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | for Google login | Web client from Google Cloud Console; redirect URI `PUBLIC_URL/api/auth/google/callback`. |
 | `GOOGLE_EXTRA_AUDIENCES` | no | JSON list of iOS and Android client ids accepted on the native login endpoint. |
 | `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_SERVICES_ID` | for Apple login | Services ID with return URL `PUBLIC_URL/api/auth/apple/callback`; the key is the `.p8` contents or `file:/run/secrets/apple_key`. |
