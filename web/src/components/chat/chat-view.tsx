@@ -20,7 +20,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input"
 import { ToolPart } from "@/components/chat/tool-part"
-import { chatErrorMessage, chatRequestBody } from "@/lib/chat"
+import { chatErrorMessage, chatRequestBody, keyedParts } from "@/lib/chat"
 import { invalidatePantry } from "@/lib/pantry"
 import { invalidateRecipes } from "@/lib/recipes"
 
@@ -30,7 +30,7 @@ type ChatViewProps = {
   initialMessages: UIMessage[]
 }
 
-export const chatTransport = (hid: string, tid: string) => {
+const chatTransport = (hid: string, tid: string) => {
   return new DefaultChatTransport({
     api: `/api/households/${hid}/threads/${tid}/chat`,
     headers: () => Object.fromEntries(apiHeaders("POST")),
@@ -55,7 +55,9 @@ export const ChatView = ({ hid, tid, initialMessages }: ChatViewProps) => {
         invalidateRecipes(queryClient, hid),
       ])
     },
-    onError: (error) => toast.error(chatErrorMessage(error)),
+    onError: (error) => {
+      toast.error(chatErrorMessage(error))
+    },
   })
 
   const busy = status === "submitted" || status === "streaming"
@@ -73,19 +75,19 @@ export const ChatView = ({ hid, tid, initialMessages }: ChatViewProps) => {
             messages.map((message) => (
               <Message key={message.id} from={message.role}>
                 <MessageContent>
-                  {message.parts.map((part, index) => {
+                  {keyedParts(message).map(({ key, part }) => {
                     if (part.type === "text") {
                       return message.role === "assistant" ? (
-                        <MessageResponse key={index}>{part.text}</MessageResponse>
+                        <MessageResponse key={key}>{part.text}</MessageResponse>
                       ) : (
-                        <p key={index} className="whitespace-pre-wrap">
+                        <p key={key} className="whitespace-pre-wrap">
                           {part.text}
                         </p>
                       )
                     }
 
                     if (isToolUIPart(part)) {
-                      return <ToolPart key={index} hid={hid} part={part} />
+                      return <ToolPart key={key} hid={hid} part={part} />
                     }
 
                     return null
@@ -108,7 +110,12 @@ export const ChatView = ({ hid, tid, initialMessages }: ChatViewProps) => {
             <PromptInputTextarea placeholder="Message the kitchen" />
           </PromptInputBody>
           <PromptInputFooter className="justify-end">
-            <PromptInputSubmit status={status} onStop={stop} />
+            <PromptInputSubmit
+              status={status}
+              onStop={() => {
+                void stop()
+              }}
+            />
           </PromptInputFooter>
         </PromptInput>
       </div>

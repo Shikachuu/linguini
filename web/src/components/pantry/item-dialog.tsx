@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { type FormEvent, type ReactNode, useState } from "react"
+import { type ReactNode, type SubmitEvent, useState } from "react"
 import { useAddItem, usePatchItem } from "@/api/gen/endpoints/inventory/inventory"
 import type { ItemOut } from "@/api/gen/model"
 import { Button } from "@/components/ui/button"
@@ -47,13 +47,20 @@ const ItemForm = ({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: 
   const [unit, setUnit] = useState(item?.unit ?? "pcs")
   const [expires, setExpires] = useState(dateInputValue(item?.expires_at ?? null))
   const [notes, setNotes] = useState(item?.notes ?? "")
-  const mutation = { onSuccess: () => invalidatePantry(queryClient, hid).then(onDone) }
+
+  const mutation = {
+    onSuccess: async () => {
+      await invalidatePantry(queryClient, hid)
+      onDone()
+    },
+  }
+
   const add = useAddItem({ mutation })
   const patch = usePatchItem({ mutation })
   const pending = add.isPending || patch.isPending
   const error = add.error ?? patch.error
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const fields = {
@@ -83,40 +90,13 @@ const ItemForm = ({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: 
           />
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid gap-1.5">
-          <Label htmlFor="item-quantity">{item ? "Quantity" : "Amount to add"}</Label>
-          <Input
-            id="item-quantity"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            value={quantity}
-            onChange={(e) => {
-              setQuantity(e.target.value)
-            }}
-            required
-          />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="item-unit">Unit</Label>
-          <Input
-            id="item-unit"
-            list="units"
-            value={unit}
-            onChange={(e) => {
-              setUnit(e.target.value)
-            }}
-            required
-          />
-          <datalist id="units">
-            {UNITS.map((u) => (
-              <option key={u} value={u} />
-            ))}
-          </datalist>
-        </div>
-      </div>
+      <AmountFields
+        quantityLabel={item ? "Quantity" : "Amount to add"}
+        quantity={quantity}
+        onQuantityChange={setQuantity}
+        unit={unit}
+        onUnitChange={setUnit}
+      />
       <div className="grid gap-1.5">
         <Label htmlFor="item-expires">Expires</Label>
         <Input
@@ -150,5 +130,54 @@ const ItemForm = ({ hid, item, onDone }: { hid: string; item?: ItemOut; onDone: 
         </Button>
       </DialogFooter>
     </form>
+  )
+}
+
+type AmountFieldsProps = {
+  quantityLabel: string
+  quantity: string
+  onQuantityChange: (quantity: string) => void
+  unit: string
+  onUnitChange: (unit: string) => void
+}
+
+const AmountFields = ({ quantityLabel, quantity, onQuantityChange, unit, onUnitChange }: AmountFieldsProps) => {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-1.5">
+        <Label htmlFor="item-quantity">{quantityLabel}</Label>
+        <Input
+          id="item-quantity"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step="any"
+          value={quantity}
+          onChange={(e) => {
+            onQuantityChange(e.target.value)
+          }}
+          required
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor="item-unit">Unit</Label>
+        <Input
+          id="item-unit"
+          list="units"
+          value={unit}
+          onChange={(e) => {
+            onUnitChange(e.target.value)
+          }}
+          required
+        />
+        <datalist id="units">
+          {UNITS.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </datalist>
+      </div>
+    </div>
   )
 }

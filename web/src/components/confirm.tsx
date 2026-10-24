@@ -36,7 +36,7 @@ export const Confirm = ({ trigger, title, description, action, onConfirm, typeTo
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
-        {typeToConfirm && (
+        {typeToConfirm !== undefined && (
           <Input
             aria-label={`Type ${typeToConfirm} to confirm`}
             placeholder={typeToConfirm}

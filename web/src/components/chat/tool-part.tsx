@@ -25,7 +25,7 @@ export const ToolPart = ({ hid, part }: { hid: string; part: ToolUIPart | Dynami
                 <XIcon className="size-4 shrink-0 text-destructive" aria-label="failed" />
               )}
               <span className="min-w-0 flex-1">{line.message}</span>
-              {line.event_id && <UndoButton hid={hid} eventId={line.event_id} />}
+              {line.event_id !== null && <UndoButton hid={hid} eventId={line.event_id} />}
             </li>
           ))}
         </ul>

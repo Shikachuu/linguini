@@ -111,7 +111,7 @@ export const PageHeader = ({ title, actions }: { title: ReactNode; actions?: Rea
   return (
     <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
       <h1 className="truncate text-xl font-semibold">{title}</h1>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions !== undefined && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
   )
 }

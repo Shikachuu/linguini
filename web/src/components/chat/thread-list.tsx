@@ -77,21 +77,79 @@ export const ThreadList = ({ hid, activeId }: { hid: string; activeId?: string }
   )
 }
 
-const ThreadRow = ({ hid, thread, active }: { hid: string; thread: ThreadOut; active: boolean }) => {
+type ThreadDialogProps = {
+  hid: string
+  thread: ThreadOut
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+const useRefreshThreads = (hid: string) => {
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
-  const [dialog, setDialog] = useState<"rename" | "delete" | null>(null)
-  const [title, setTitle] = useState(thread.title)
-  const refresh = () => queryClient.invalidateQueries({ queryKey: getListThreadsQueryKey(hid) })
+
+  return () => queryClient.invalidateQueries({ queryKey: getListThreadsQueryKey(hid) })
+}
+
+const RenameThreadDialog = ({
+  hid,
+  thread,
+  open,
+  onOpenChange,
+  title,
+  onTitleChange,
+}: ThreadDialogProps & { title: string; onTitleChange: (title: string) => void }) => {
+  const refresh = useRefreshThreads(hid)
 
   const rename = useRenameThread({
     mutation: {
-      onSuccess: () =>
-        refresh().then(() => {
-          setDialog(null)
-        }),
+      onSuccess: async () => {
+        await refresh()
+        onOpenChange(false)
+      },
     },
   })
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename chat</DialogTitle>
+        </DialogHeader>
+        <form
+          className="grid gap-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            rename.mutate({
+              householdId: hid,
+              threadId: thread.id,
+              data: { title: title.trim() },
+            })
+          }}
+        >
+          <Input
+            aria-label="Title"
+            value={title}
+            onChange={(e) => {
+              onTitleChange(e.target.value)
+            }}
+            maxLength={80}
+            required
+          />
+          {rename.isError && <p className="text-sm text-destructive">{errorMessage(rename.error)}</p>}
+          <DialogFooter>
+            <Button type="submit" disabled={rename.isPending}>
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const DeleteThreadDialog = ({ hid, thread, open, onOpenChange, active }: ThreadDialogProps & { active: boolean }) => {
+  const refresh = useRefreshThreads(hid)
+  const navigate = useNavigate()
 
   const remove = useDeleteThread({
     mutation: {
@@ -103,6 +161,35 @@ const ThreadRow = ({ hid, thread, active }: { hid: string; thread: ThreadOut; ac
       onError: (error) => toast.error(errorMessage(error)),
     },
   })
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {thread.title}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            The conversation is deleted for everyone. Pantry changes it made stay.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            onClick={() => {
+              remove.mutate({ householdId: hid, threadId: thread.id })
+            }}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+const ThreadRow = ({ hid, thread, active }: { hid: string; thread: ThreadOut; active: boolean }) => {
+  const [dialog, setDialog] = useState<"rename" | "delete" | null>(null)
+  const [title, setTitle] = useState(thread.title)
 
   return (
     <li className={active ? "flex items-center bg-accent" : "flex items-center hover:bg-accent/60"}>
@@ -135,71 +222,25 @@ const ThreadRow = ({ hid, thread, active }: { hid: string; thread: ThreadOut; ac
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog
+      <RenameThreadDialog
+        hid={hid}
+        thread={thread}
         open={dialog === "rename"}
         onOpenChange={(open) => {
           setDialog(open ? "rename" : null)
         }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename chat</DialogTitle>
-          </DialogHeader>
-          <form
-            className="grid gap-3"
-            onSubmit={(event) => {
-              event.preventDefault()
-              rename.mutate({
-                householdId: hid,
-                threadId: thread.id,
-                data: { title: title.trim() },
-              })
-            }}
-          >
-            <Input
-              aria-label="Title"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value)
-              }}
-              maxLength={80}
-              required
-            />
-            {rename.isError && <p className="text-sm text-destructive">{errorMessage(rename.error)}</p>}
-            <DialogFooter>
-              <Button type="submit" disabled={rename.isPending}>
-                Save
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      <AlertDialog
+        title={title}
+        onTitleChange={setTitle}
+      />
+      <DeleteThreadDialog
+        hid={hid}
+        thread={thread}
+        active={active}
         open={dialog === "delete"}
         onOpenChange={(open) => {
           setDialog(open ? "delete" : null)
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {thread.title}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The conversation is deleted for everyone. Pantry changes it made stay.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                remove.mutate({ householdId: hid, threadId: thread.id })
-              }}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      />
     </li>
   )
 }

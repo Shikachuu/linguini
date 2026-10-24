@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 
 describe("Confirm", () => {
   it("keeps the action disabled until the confirmation text is typed", async () => {
-    const onConfirm = vi.fn()
+    const onConfirm = vi.fn<() => void>()
     render(
       <Confirm
         trigger={<Button>Delete account</Button>}

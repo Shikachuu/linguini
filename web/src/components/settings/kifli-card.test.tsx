@@ -58,6 +58,6 @@ describe("KifliCard", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Connect" }))
     await userEvent.type(screen.getByLabelText("Address from the address bar"), "http://localhost:3334/oauth/callback")
     await userEvent.click(screen.getByRole("button", { name: "Finish connecting" }))
-    expect(await screen.findByText(new RegExp(text))).toBeInTheDocument()
+    expect(await screen.findByText(new RegExp(text, "u"))).toBeInTheDocument()
   })
 })

@@ -53,7 +53,7 @@ export const CookDialog = ({ hid, recipe }: { hid: string; recipe: RecipeOut }) 
                   <XIcon className="size-4 text-destructive" aria-label="failed" />
                 )}
                 <span className="min-w-0 flex-1">{line.message}</span>
-                {line.event_id && <UndoButton hid={hid} eventId={line.event_id} />}
+                {line.event_id !== null && <UndoButton hid={hid} eventId={line.event_id} />}
               </li>
             ))}
           </ul>

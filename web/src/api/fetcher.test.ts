@@ -32,9 +32,10 @@ describe("apiFetch", () => {
 
   it("raises FastAPI string details as ApiError", async () => {
     stubFetch(Response.json({ detail: "This thread is already answering" }, { status: 409 }))
-    const error = await apiFetch("/x", { method: "POST" }).catch((e: unknown) => e)
-    expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ status: 409, message: "This thread is already answering" })
+    const request = apiFetch("/x", { method: "POST" })
+
+    await expect(request).rejects.toBeInstanceOf(ApiError)
+    await expect(request).rejects.toMatchObject({ status: 409, message: "This thread is already answering" })
   })
 
   it("joins validation error messages", async () => {

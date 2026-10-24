@@ -1,4 +1,4 @@
-import type { UIMessage } from "ai"
+import { isToolUIPart, type UIMessage } from "ai"
 import { z } from "zod"
 import { detailOf } from "@/api/fetcher"
 
@@ -67,4 +67,11 @@ export const mergeAssistantMessages = (messages: UIMessage[]): UIMessage[] => {
 
 export const chatErrorMessage = (error: Error): string => {
   return detailOf(error.message) ?? (error.message || "The reply failed.")
+}
+
+export const keyedParts = (message: UIMessage) => {
+  return message.parts.map((part, position) => ({
+    key: isToolUIPart(part) ? part.toolCallId : `${message.id}:${position}`,
+    part,
+  }))
 }
