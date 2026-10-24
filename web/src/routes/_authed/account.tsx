@@ -11,6 +11,8 @@ import { loginHref, type Provider } from "@/lib/session"
 
 const PROVIDER_LABEL: Record<Provider, string> = { google: "Google", apple: "Apple" }
 
+const PROVIDERS = ["google", "apple"] as const satisfies readonly Provider[]
+
 const DELETE_CONFIRMATION = "delete my account"
 
 const Account = () => {
@@ -28,7 +30,7 @@ const Account = () => {
   const deleteMe = useDeleteMe({ mutation: { onSuccess: signOut } })
 
   const linked = new Set(me?.identities.map((i) => i.provider))
-  const linkable = (Object.keys(PROVIDER_LABEL) as Provider[]).filter((p) => config?.providers[p] && !linked.has(p))
+  const linkable = PROVIDERS.filter((p) => config?.providers[p] === true && !linked.has(p))
 
   return (
     <main className="mx-auto grid max-w-2xl gap-4 p-4">
@@ -50,7 +52,7 @@ const Account = () => {
             {me?.identities.map((i) => (
               <li key={i.provider}>
                 {PROVIDER_LABEL[i.provider]}
-                {i.email && <span className="text-muted-foreground"> · {i.email}</span>}
+                {i.email !== null && <span className="text-muted-foreground"> · {i.email}</span>}
               </li>
             ))}
           </ul>
@@ -58,7 +60,7 @@ const Account = () => {
             <div className="flex flex-wrap gap-2">
               {linkable.map((p) => (
                 <Button key={p} asChild variant="outline" size="sm">
-                  <a href={loginHref(p, { return_to: "/account" })}>Link {PROVIDER_LABEL[p]}</a>
+                  <a href={loginHref(p, { return_to: "/account" })}>Link {PROVIDER_LABEL[p]} account</a>
                 </Button>
               ))}
             </div>

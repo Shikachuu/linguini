@@ -1,34 +1,38 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { z } from "zod"
 import { useConfig } from "@/api/gen/endpoints/meta/meta"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { loginHref, type Provider } from "@/lib/session"
 
-type LoginSearch = {
-  return_to?: string
-  invite?: string
-  login_error?: string
-}
+const nonEmptyText = z.string().min(1)
+
+const searchText = z
+  .unknown()
+  .optional()
+  .transform((value) => nonEmptyText.safeParse(value).data)
+
+const loginSearch = z.object({ return_to: searchText, invite: searchText, login_error: searchText })
 
 const PROVIDERS: { id: Provider; label: string }[] = [
   { id: "google", label: "Continue with Google" },
   { id: "apple", label: "Continue with Apple" },
 ]
 
-const LOGIN_ERRORS: Record<string, string> = {
-  invite_required: "You need an invite link from a household member to create an account.",
-  access_denied: "Sign-in was cancelled.",
-}
+const LOGIN_ERRORS = new Map([
+  ["invite_required", "You need an invite link from a household member to create an account."],
+  ["access_denied", "Sign-in was cancelled."],
+])
 
 const loginErrorMessage = (reason: string): string => {
-  return LOGIN_ERRORS[reason] ?? `Sign-in failed: ${reason}`
+  return LOGIN_ERRORS.get(reason) ?? `Sign-in failed: ${reason}`
 }
 
 export const Login = () => {
   const { return_to, invite, login_error } = Route.useSearch()
   const { data: config, isPending, isError } = useConfig()
-  const enabled = PROVIDERS.filter((p) => config?.providers[p.id])
+  const enabled = PROVIDERS.filter((p) => config?.providers[p.id] === true)
 
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
@@ -36,11 +40,11 @@ export const Login = () => {
         <CardHeader>
           <CardTitle className="text-2xl">Linguini</CardTitle>
           <CardDescription>
-            {invite ? "Sign in to join the household you were invited to." : "Sign in to your household."}
+            {invite === undefined ? "Sign in to your household." : "Sign in to join the household you were invited to."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {login_error && (
+          {login_error !== undefined && (
             <p role="alert" className="text-sm text-destructive">
               {loginErrorMessage(login_error)}
             </p>
@@ -62,16 +66,6 @@ export const Login = () => {
 }
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): LoginSearch => {
-    const result: LoginSearch = {}
-
-    for (const key of ["return_to", "invite", "login_error"] as const) {
-      const value = search[key]
-
-      if (typeof value === "string" && value) result[key] = value
-    }
-
-    return result
-  },
+  validateSearch: loginSearch,
   component: Login,
 })

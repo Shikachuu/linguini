@@ -88,7 +88,9 @@ const ItemRow = ({ hid, item }: { hid: string; item: ItemOut }) => {
           </span>
           {fresh && <Badge variant={fresh.tone === "bad" ? "destructive" : "secondary"}>{fresh.label}</Badge>}
         </div>
-        {item.notes && <p className="truncate text-xs text-muted-foreground">{item.notes}</p>}
+        {item.notes !== null && item.notes !== "" && (
+          <p className="truncate text-xs text-muted-foreground">{item.notes}</p>
+        )}
       </div>
       <span className="text-sm tabular-nums">{formatQuantity(item.quantity, item.unit)}</span>
       <ItemDialog

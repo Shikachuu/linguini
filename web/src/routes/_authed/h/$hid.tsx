@@ -14,7 +14,7 @@ const Household = () => {
 
 export const Route = createFileRoute("/_authed/h/$hid")({
   beforeLoad: ({ context, params }) => {
-    if (!context.me.households.some((h) => h.id === params.hid)) throw redirect({ to: "/" })
+    if (!context.me.households.some((h) => h.id === params.hid)) redirect({ to: "/", throw: true })
     rememberHousehold(params.hid)
   },
   component: Household,

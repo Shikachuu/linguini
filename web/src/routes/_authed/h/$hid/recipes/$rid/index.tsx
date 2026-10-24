@@ -76,7 +76,7 @@ const RecipeView = () => {
               <li key={i.name} className="flex justify-between gap-4">
                 <span>
                   {i.name}
-                  {i.optional && <span className="text-muted-foreground"> (optional)</span>}
+                  {i.optional === true && <span className="text-muted-foreground"> (optional)</span>}
                 </span>
                 <span className="tabular-nums">{formatQuantity(i.quantity, i.unit)}</span>
               </li>

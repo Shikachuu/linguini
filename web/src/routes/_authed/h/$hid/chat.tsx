@@ -8,10 +8,12 @@ const ChatLayout = () => {
 
   return (
     <div className="flex h-full min-h-0">
-      <aside className={cn("w-full overflow-y-auto md:w-72 md:shrink-0 md:border-r", tid && "hidden md:block")}>
+      <aside
+        className={cn("w-full overflow-y-auto md:w-72 md:shrink-0 md:border-r", tid !== undefined && "hidden md:block")}
+      >
         <ThreadList hid={hid} activeId={tid} />
       </aside>
-      <section className={cn("min-h-0 min-w-0 flex-1", !tid && "hidden md:block")}>
+      <section className={cn("min-h-0 min-w-0 flex-1", tid === undefined && "hidden md:block")}>
         <Outlet />
       </section>
     </div>

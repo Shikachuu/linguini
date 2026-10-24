@@ -111,12 +111,62 @@ const HouseholdCard = ({ hid }: { hid: string }) => {
   )
 }
 
+const copyInviteLink = async (url: string) => {
+  await navigator.clipboard.writeText(url)
+  toast.success("Invite link copied")
+}
+
+const InviteLink = ({ hid }: { hid: string }) => {
+  const invite = useCreateInvite()
+
+  return (
+    <>
+      {invite.data ? (
+        <div className="grid gap-1">
+          <div className="flex gap-2">
+            <Input
+              readOnly
+              value={invite.data.url}
+              aria-label="Invite link"
+              onFocus={(e) => {
+                e.target.select()
+              }}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Copy invite link"
+              onClick={() => void copyInviteLink(invite.data.url)}
+            >
+              <CopyIcon />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Single use, valid until {formatDateTime(invite.data.expires_at)}.
+          </p>
+        </div>
+      ) : (
+        <Button
+          variant="outline"
+          className="justify-self-start"
+          disabled={invite.isPending}
+          onClick={() => {
+            invite.mutate({ householdId: hid })
+          }}
+        >
+          Create invite link
+        </Button>
+      )}
+      {invite.isError && <p className="text-sm text-destructive">{errorMessage(invite.error)}</p>}
+    </>
+  )
+}
+
 const MembersCard = ({ hid }: { hid: string }) => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { data: me } = useMe()
   const members = useListMembers(hid)
-  const invite = useCreateInvite()
 
   const remove = useRemoveMember({
     mutation: {
@@ -130,11 +180,6 @@ const MembersCard = ({ hid }: { hid: string }) => {
       },
     },
   })
-
-  const copy = async (url: string) => {
-    await navigator.clipboard.writeText(url)
-    toast.success("Invite link copied")
-  }
 
   return (
     <Card>
@@ -172,43 +217,7 @@ const MembersCard = ({ hid }: { hid: string }) => {
             </li>
           ))}
         </ul>
-        {invite.data ? (
-          <div className="grid gap-1">
-            <div className="flex gap-2">
-              <Input
-                readOnly
-                value={invite.data.url}
-                aria-label="Invite link"
-                onFocus={(e) => {
-                  e.target.select()
-                }}
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Copy invite link"
-                onClick={() => void copy(invite.data.url)}
-              >
-                <CopyIcon />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Single use, valid until {formatDateTime(invite.data.expires_at)}.
-            </p>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            className="justify-self-start"
-            disabled={invite.isPending}
-            onClick={() => {
-              invite.mutate({ householdId: hid })
-            }}
-          >
-            Create invite link
-          </Button>
-        )}
-        {invite.isError && <p className="text-sm text-destructive">{errorMessage(invite.error)}</p>}
+        <InviteLink hid={hid} />
       </CardContent>
     </Card>
   )
