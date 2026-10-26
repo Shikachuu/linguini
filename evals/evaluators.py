@@ -1,4 +1,6 @@
+import re
 from dataclasses import dataclass
+from typing import Literal
 
 from pydantic_evals.evaluators import EvaluationReason, Evaluator, EvaluatorContext
 
@@ -9,6 +11,69 @@ from linguini.inventory.units import dimension_of, normalize_name, parse_unit, t
 INVENTORY_WRITES = frozenset({"add_items", "consume_items", "set_item", "remove_item", "undo", "cook_recipe"})
 
 type ChatContext = EvaluatorContext[ChatInputs, ChatOutcome, None]
+
+STOPWORDS = {
+    "hu": frozenset(
+        [
+            "az",
+            "és",
+            "van",
+            "hogy",
+            "nem",
+            "egy",
+            "meg",
+            "már",
+            "még",
+            "ha",
+            "mit",
+            "kész",
+            "ezt",
+            "kell",
+            "nincs",
+            "rendben",
+            "szívesen",
+            "felírtam",
+            "hozzáadtam",
+            "levontam",
+            "visszavonható",
+        ]
+    ),
+    "en": frozenset(
+        [
+            "the",
+            "and",
+            "you",
+            "to",
+            "of",
+            "your",
+            "it",
+            "with",
+            "for",
+            "have",
+            "now",
+            "can",
+            "that",
+            "this",
+            "are",
+            "what",
+            "there",
+            "not",
+            "added",
+            "removed",
+            "undo",
+            "if",
+            "no",
+            "recorded",
+        ]
+    ),
+}
+
+
+def language_of(text: str) -> str | None:
+    words = re.findall(r"[^\W\d_]+", text.casefold())
+    counts = {language: sum(word in stop for word in words) for language, stop in STOPWORDS.items()}
+    best = max(counts, key=counts.__getitem__)
+    return best if counts[best] > min(counts.values()) else None
 
 
 def _called(ctx: ChatContext) -> list[str]:
@@ -72,6 +137,17 @@ class InventoryIs(Evaluator[ChatInputs, ChatOutcome, None]):
 
 
 @dataclass
+class ReplyLanguage(Evaluator[ChatInputs, ChatOutcome, None]):
+    """Every reply is in this language, judged by stopword counts so item names do not sway it."""
+
+    language: Literal["en", "hu"]
+
+    def evaluate(self, ctx: ChatContext) -> EvaluationReason:
+        detected = [language_of(reply) for reply in ctx.output.replies]
+        return EvaluationReason(bool(detected) and all(d == self.language for d in detected), f"replies: {detected}")
+
+
+@dataclass
 class SavedRecipeAllergens(Evaluator[ChatInputs, ChatOutcome, None]):
     """save_recipe was called with an allergen containing one of the words, in any language the model chose."""
 
@@ -124,6 +200,7 @@ CHAT_EVALUATORS = (
     ToolOrder,
     NoInventoryWrites,
     InventoryIs,
+    ReplyLanguage,
     SavedRecipeAllergens,
     ReplyMentions,
 )

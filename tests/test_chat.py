@@ -9,9 +9,11 @@ from chat_models import Scripted, sse_events, vercel_body
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from helpers import CSRF_HEADERS, chat, login_google, sql
+from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.test import TestModel
 
 from linguini.app import create_app
+from linguini.chat.prompts import REPLY_LANGUAGE
 from linguini.chat.tools import PurchasedItem
 from linguini.config import Settings
 
@@ -215,3 +217,16 @@ def test_session_header_carries_the_thread_id(settings: Settings) -> None:
 def test_tool_dates_without_timezone_are_read_as_utc() -> None:
     item = PurchasedItem.model_validate({"name": "tej", "quantity": 1, "unit": "l", "purchased_at": "2026-10-26"})
     assert item.purchased_at == datetime(2026, 10, 26, tzinfo=UTC)
+
+
+def test_reply_language_reminder_is_sent_once_per_request_and_never_stored(
+    client, home, thread, scripted: Scripted, settings: Settings
+) -> None:
+    chat(client, home, thread, "add 1 kg rizs")
+    chat(client, home, thread, "hello")
+    for request in scripted.seen:
+        reminders = [
+            p for m in request for p in m.parts if isinstance(p, UserPromptPart) and p.content == REPLY_LANGUAGE
+        ]
+        assert reminders == [request[-1].parts[-1]]
+    assert all(REPLY_LANGUAGE not in str(messages) for _, messages, _ in runs(settings))

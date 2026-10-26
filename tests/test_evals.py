@@ -18,14 +18,17 @@ from evals.evaluators import (
     InventoryIs,
     MaxChars,
     NoInventoryWrites,
+    ReplyLanguage,
     ReplyMentions,
     SavedRecipeAllergens,
     SummaryMentions,
     ToolCalled,
     ToolNotCalled,
     ToolOrder,
+    language_of,
 )
 from evals.summary import Line, SummaryInputs, summary_task
+from linguini.chat.prompts import REPLY_LANGUAGE
 from linguini.config import Settings
 from linguini.recipes.service import Ingredient, RecipeData
 
@@ -56,6 +59,7 @@ async def test_chat_task_runs_each_message_as_its_own_turn() -> None:
     outcome = await task(ChatInputs(messages=["add", "undo"], inventory=[Stock(name="tej", quantity=1, unit="l")]))
     assert [c.name for c in outcome.tool_calls] == ["add_items", "undo"]
     assert outcome.inventory == [StockLevel(name="tej", quantity_base=1000, unit="l")]
+    assert outcome.replies == ["Kész, visszavonható.", "Kész, visszavonható."]
     assert outcome.reply == "Kész, visszavonható."
 
 
@@ -66,7 +70,7 @@ async def test_chat_task_seeds_history_recipes_and_expiry() -> None:
         last = messages[-1]
         assert isinstance(last, ModelRequest)
         seen.append(last)
-        if any(isinstance(p, UserPromptPart) for p in last.parts):
+        if any(isinstance(p, UserPromptPart) and p.content != REPLY_LANGUAGE for p in last.parts):
             return ModelResponse(parts=[ToolCallPart("list_recipes", {})])
         returned = next(p for p in last.parts if isinstance(p, ToolReturnPart))
         return ModelResponse(parts=[TextPart(str(returned.content))])
@@ -115,6 +119,7 @@ async def test_summary_task_sends_rendered_conversation() -> None:
 
 OUTCOME = ChatOutcome(
     reply="Hozzáadtam: 50 dkg Trappista sajt.",
+    replies=["Megvan, ez is kész.", "Hozzáadtam: 50 dkg Trappista sajt."],
     tool_calls=[
         ToolCall(name="list_recipes", args={}),
         ToolCall(name="add_items", args={}),
@@ -141,6 +146,8 @@ OUTCOME = ChatOutcome(
         (SavedRecipeAllergens(["gluten"]), False),
         (ReplyMentions(["trappista", "gouda"]), True),
         (ReplyMentions(["gouda"]), False),
+        (ReplyLanguage("hu"), True),
+        (ReplyLanguage("en"), False),
     ],
 )
 async def test_chat_evaluators(evaluator, passed: bool) -> None:
@@ -151,6 +158,41 @@ async def test_chat_evaluators(evaluator, passed: bool) -> None:
         name="t", cases=[Case(inputs=ChatInputs(messages=[]))], evaluators=[evaluator]
     )
     report = await dataset.evaluate(fixed, progress=False)
+    assert [a.value for a in report.cases[0].assertions.values()] == [passed]
+
+
+@pytest.mark.parametrize(
+    ("text", "language"),
+    [
+        ("I added the tej and the trappista, you can undo it.", "en"),
+        ("Felírtam a tejet és a trappistát, visszavonható.", "hu"),
+        ("I added a tomato.", "en"),
+        ("az the", None),
+        ("tej, trappista", None),
+        ("", None),
+    ],
+)
+def test_language_of_ignores_item_names(text: str, language: str | None) -> None:
+    assert language_of(text) == language
+
+
+@pytest.mark.parametrize(
+    ("replies", "passed"),
+    [
+        (["I added it.", "Done, you can undo it."], True),
+        (["I added it.", "Felírtam, visszavonható."], False),
+        (["tej"], False),
+        ([], False),
+    ],
+)
+def test_reply_language_checks_every_turn(replies: list[str], passed: bool) -> None:
+    def fixed(inputs: ChatInputs) -> ChatOutcome:
+        return ChatOutcome(reply="", replies=replies, tool_calls=[], inventory=[])
+
+    dataset = Dataset[ChatInputs, ChatOutcome, None](
+        name="t", cases=[Case(inputs=ChatInputs(messages=[]))], evaluators=[ReplyLanguage("en")]
+    )
+    report = dataset.evaluate_sync(fixed, progress=False)
     assert [a.value for a in report.cases[0].assertions.values()] == [passed]
 
 

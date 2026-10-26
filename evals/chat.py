@@ -61,6 +61,7 @@ class StockLevel(BaseModel):
 
 class ChatOutcome(BaseModel):
     reply: str
+    replies: list[str]
     tool_calls: list[ToolCall]
     inventory: list[StockLevel]
 
@@ -85,7 +86,7 @@ async def _converse(agent: Agent[AgentDeps, str], db: Database, settings: Settin
     household_id, user_id, thread_id = await _seed(db, inputs)
     messages = _history(inputs.history)
     calls: list[ToolCall] = []
-    reply = ""
+    replies: list[str] = []
     for text in inputs.messages:
         async with db.read_session() as session:
             items = await inventory.list_items(session, household_id)
@@ -114,7 +115,7 @@ async def _converse(agent: Agent[AgentDeps, str], db: Database, settings: Settin
         )
         calls.extend(_tool_calls(result.new_messages()))
         messages = result.all_messages()
-        reply = result.output
+        replies.append(result.output)
         usage = result.usage
         increment_eval_metric("requests", usage.requests)
         increment_eval_metric("input_tokens", usage.input_tokens)
@@ -122,7 +123,7 @@ async def _converse(agent: Agent[AgentDeps, str], db: Database, settings: Settin
     async with db.read_session() as session:
         items = await inventory.list_items(session, household_id)
     stock = [StockLevel(name=i.name, quantity_base=i.quantity_base, unit=i.display_unit) for i in items]
-    return ChatOutcome(reply=reply, tool_calls=calls, inventory=stock)
+    return ChatOutcome(reply=replies[-1] if replies else "", replies=replies, tool_calls=calls, inventory=stock)
 
 
 async def _seed(db: Database, inputs: ChatInputs) -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:

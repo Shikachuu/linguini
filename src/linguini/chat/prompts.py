@@ -10,6 +10,7 @@ from pydantic_ai import TemplateStr
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 CHAT_SPEC = PROMPTS_DIR / "chat.yaml"
 SUMMARY_SPEC = PROMPTS_DIR / "summary.yaml"
+REPLY_LANGUAGE = (PROMPTS_DIR / "reply_language.md").read_text(encoding="utf-8").strip()
 
 
 class ChatContext(BaseModel):

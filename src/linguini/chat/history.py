@@ -227,20 +227,6 @@ def inventory_snapshot(items: Sequence[InventoryItem], now: datetime) -> str:
     return "\n".join(lines[:SNAPSHOT_LINES])
 
 
-def last_user_text(messages: Sequence[ModelMessage]) -> str | None:
-    """The newest user prompt text in a message list.
-
-    Returns:
-        The text or None.
-    """
-    for message in reversed(messages):
-        if isinstance(message, ModelRequest):
-            for part in reversed(message.parts):
-                if isinstance(part, UserPromptPart) and isinstance(part.content, str):
-                    return part.content
-    return None
-
-
 def title_from(text: str) -> str:
     """Derive a thread title from the first prompt.
 

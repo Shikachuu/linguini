@@ -158,10 +158,50 @@ cases:
     evaluators:
       - ToolCalled: add_items
       - InventoryIs: {item: tej, quantity: 2, unit: l}
+      - ReplyLanguage: en
       - LLMJudge:
           rubric: >-
-            The reply is in English and refers to the items by the names the user used ("tej",
-            "trappista") rather than translating the stored names.
+            The reply refers to the items by the names the user used ("tej", "trappista") rather than
+            translating them.
+
+  - name: english-multiturn
+    inputs:
+      user_name: Tom
+      members: [Tom, Anna]
+      messages:
+        - "Hi! I bought 500 g csirkemell and 1 kg rizs today."
+        - "What could I cook with the chicken tonight?"
+        - "Great, I made it. We used all the chicken and half the rice."
+      inventory:
+        - {name: tojás, quantity: 6, unit: pcs}
+        - {name: vöröshagyma, quantity: 3, unit: pcs}
+    evaluators:
+      - ReplyLanguage: en
+      - InventoryIs: {item: csirkemell, quantity: 0, unit: g}
+
+  - name: hungarian-multiturn
+    inputs:
+      messages:
+        - "Szia! Vettem 500 g csirkemellet és 1 kg rizst."
+        - "Mit főzhetnék ma este a csirkéből?"
+        - "Megcsináltam, elfogyott az összes csirke és a rizs fele."
+    evaluators:
+      - ReplyLanguage: hu
+      - InventoryIs: {item: csirkemell, quantity: 0, unit: g}
+
+  - name: switch-to-english
+    inputs:
+      history:
+        - {role: user, text: "Szia, vettem 6 tojást."}
+        - {role: assistant, text: "Felírtam: tojás 6 db. Visszavonható."}
+      inventory:
+        - {name: tojás, quantity: 6, unit: pcs}
+      messages:
+        - "How many eggs do we have?"
+        - "I just ate two of them."
+    evaluators:
+      - ReplyLanguage: en
+      - InventoryIs: {item: tojás, quantity: 4, unit: pcs}
 
   - name: undo-previous-turn
     inputs:

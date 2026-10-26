@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass, replace
 
 from pydantic_ai import Agent, ModelSettings, RunContext, UsageLimits
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.mcp import MCPToolset
-from pydantic_ai.models import Model
+from pydantic_ai.messages import ModelRequest, UserPromptPart
+from pydantic_ai.models import Model, ModelRequestContext
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.profiles.openai import OpenAIModelProfile
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.toolsets import AbstractToolset
 
 from linguini.chat.deps import AgentDeps
-from linguini.chat.prompts import CHAT_CONTEXT, CHAT_SPEC, SUMMARY_SPEC
+from linguini.chat.prompts import CHAT_CONTEXT, CHAT_SPEC, REPLY_LANGUAGE, SUMMARY_SPEC
 from linguini.chat.tools import inventory_toolset, recipe_toolset
 from linguini.config import Settings
 
@@ -59,6 +61,24 @@ def chat_context(ctx: RunContext[AgentDeps]) -> str:
     return CHAT_CONTEXT.render(ctx.deps.prompt_context())
 
 
+@dataclass
+class ReplyLanguageReminder(AbstractCapability[AgentDeps]):
+    """Repeat the reply-language rule right after the newest message of every model request."""
+
+    async def before_model_request(
+        self, ctx: RunContext[AgentDeps], request_context: ModelRequestContext
+    ) -> ModelRequestContext:
+        """Append the reminder to the last request sent to the model.
+
+        Returns:
+            The request context with the reminder added.
+        """
+        messages = list(request_context.messages)
+        if messages and isinstance(messages[-1], ModelRequest):
+            messages[-1] = replace(messages[-1], parts=[*messages[-1].parts, UserPromptPart(REPLY_LANGUAGE)])
+        return replace(request_context, messages=messages)
+
+
 def build_agent(model: Model, capabilities: Sequence[AbstractCapability[AgentDeps]] = ()) -> Agent[AgentDeps, str]:
     """Create the household agent bound to ``model``.
 
@@ -71,7 +91,7 @@ def build_agent(model: Model, capabilities: Sequence[AbstractCapability[AgentDep
         model=model,
         instructions=chat_context,
         toolsets=[inventory_toolset, recipe_toolset],
-        capabilities=list(capabilities),
+        capabilities=[ReplyLanguageReminder(), *capabilities],
     )
 
     @agent.toolset(per_run_step=False, id="kifli-mcp")

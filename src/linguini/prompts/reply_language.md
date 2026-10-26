@@ -1,0 +1,1 @@
+Reply in the language of the user's latest message, even if item names, earlier replies, or this household's locale are in another language. Product names inside the message do not count; judge its language from the other words.

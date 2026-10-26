@@ -5,17 +5,17 @@ from pathlib import Path
 
 import pytest
 from pydantic_ai.agent.spec import AgentSpec
-from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart
+from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart, ToolCallPart, UserPromptPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from linguini.chat.agent import build_agent, build_summarizer
 from linguini.chat.deps import AgentDeps
 from linguini.chat.history import summary_prompt
-from linguini.chat.prompts import CHAT_CONTEXT, CHAT_SPEC, SUMMARY_SPEC, ChatContext
-from linguini.db import Database
+from linguini.chat.prompts import CHAT_CONTEXT, CHAT_SPEC, REPLY_LANGUAGE, SUMMARY_SPEC, ChatContext
+from linguini.db import Database, run_migrations
 
 HEAD = (
-    "Today is 2026-03-04 (Wednesday). Locale: hu-HU.\n"
+    "Today is 2026-03-04 (Wednesday). Date and number format: hu-HU.\n"
     "Household: Kovács & Co. Members: Anna, Béla.\n"
     "You are talking to Anna."
 )
@@ -96,6 +96,25 @@ def test_agent_sends_static_instructions_then_context(tmp_path: Path) -> None:
     assert isinstance(static, str)
     build_agent(FunctionModel(capture)).run_sync("hi", deps=deps(tmp_path))
     assert seen == [static.strip() + "\n\n" + HEAD + "\n" + NOT_CONNECTED]
+
+
+def test_reply_language_reminder_trails_every_request_and_is_not_stored(tmp_path: Path) -> None:
+    trailing: list[object] = []
+
+    def model(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        last = messages[-1]
+        assert isinstance(last, ModelRequest)
+        trailing.append(last.parts[-1])
+        if len(trailing) == 1:
+            return ModelResponse(parts=[ToolCallPart("list_items", {})])
+        return ModelResponse(parts=[TextPart("ok")])
+
+    run_migrations(tmp_path / "unused.db")
+    result = build_agent(FunctionModel(model)).run_sync("hi", deps=deps(tmp_path))
+    assert [type(p) for p in trailing] == [UserPromptPart, UserPromptPart]
+    assert all(isinstance(p, UserPromptPart) and p.content == REPLY_LANGUAGE for p in trailing)
+    stored = [p for m in result.all_messages() for p in m.parts if isinstance(p, UserPromptPart)]
+    assert [p.content for p in stored] == ["hi"]
 
 
 def test_specs_configure_agents() -> None:
