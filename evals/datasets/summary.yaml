@@ -1,0 +1,71 @@
+name: summary
+cases:
+  - name: keeps-allergies-first
+    inputs:
+      conversation:
+        - {role: user, text: "Szia! Béla lisztérzékeny, Anna nem eszik sertéshúst."}
+        - {role: assistant, text: "Megjegyeztem: Béla gluténmentes, Anna nem eszik sertést."}
+        - {role: user, text: "Mit főzzünk hétvégén?"}
+        - {role: assistant, text: "Javaslom a gluténmentes csirkepaprikást rizzsel. Allergének: tej (tejföl)."}
+        - {role: user, text: "Jó, azt főzzük szombaton."}
+    evaluators:
+      - SummaryMentions: {all_of: [Béla, glutén, Anna, sertés, csirkepaprikás]}
+      - LLMJudge:
+          rubric: >-
+            The summary is in Hungarian. It states Béla's gluten intolerance and that Anna does not eat
+            pork before anything else, then notes that chicken paprikash is planned for Saturday.
+
+  - name: merges-earlier-summary
+    inputs:
+      previous: "Allergiák: Béla laktózérzékeny. Tervezett étel: lencsefőzelék csütörtökre."
+      conversation:
+        - {role: user, text: "Vettem 2 kg krumplit és 1 kg répát."}
+        - {role: call, tool: add_items, args: {items: [{name: krumpli, quantity: 2, unit: kg}, {name: répa, quantity: 1, unit: kg}]}}
+        - {role: result, tool: add_items, text: "krumpli: now 2 kg; répa: now 1 kg"}
+        - {role: assistant, text: "Hozzáadtam: krumpli 2 kg, répa 1 kg. Visszavonható."}
+    evaluators:
+      - SummaryMentions: {all_of: [laktóz, lencsefőzelék, krumpli, répa]}
+      - LLMJudge:
+          rubric: >-
+            The summary keeps both facts from the earlier summary (Béla's lactose intolerance and the
+            lentil stew planned for Thursday) and adds the potato and carrot purchase.
+
+  - name: english-conversation-stays-english
+    inputs:
+      conversation:
+        - {role: user, text: "I'm vegetarian and allergic to peanuts."}
+        - {role: assistant, text: "Noted: vegetarian, peanut allergy. I'll keep suggestions meat- and peanut-free."}
+        - {role: user, text: "Plan a curry for Friday."}
+        - {role: assistant, text: "Chickpea and spinach curry for Friday. Allergens: none of the main 14 if you skip the yogurt (dairy)."}
+    evaluators:
+      - SummaryMentions: {all_of: [vegetarian, peanut, curry]}
+      - LLMJudge:
+          rubric: The summary is written in English and lists the vegetarian diet and peanut allergy first.
+
+  - name: open-question-kept
+    inputs:
+      conversation:
+        - {role: user, text: "Kellene valami a vasárnapi ebédre, jönnek a szüleim."}
+        - {role: assistant, text: "Szívesen segítek. Van valakinek allergiája vagy diétája a vendégek közül?"}
+        - {role: user, text: "Még megkérdezem anyát, és szólok."}
+    evaluators:
+      - LLMJudge:
+          rubric: >-
+            The summary records the open question: whether the visiting parents have allergies or dietary
+            limits for Sunday lunch is still unknown and the user will report back.
+
+  - name: stays-brief
+    inputs:
+      conversation:
+        - {role: user, text: "Mennyi tej van itthon?"}
+        - {role: call, tool: search_items, args: {query: tej}}
+        - {role: result, tool: search_items, text: "[{\"name\": \"tej\", \"quantity\": \"1 l\"}]"}
+        - {role: assistant, text: "Egy liter tej van itthon."}
+        - {role: user, text: "És tojás?"}
+        - {role: call, tool: search_items, args: {query: tojás}}
+        - {role: result, tool: search_items, text: "[{\"name\": \"tojás\", \"quantity\": \"6 db\"}]"}
+        - {role: assistant, text: "Hat tojás van."}
+        - {role: user, text: "Köszi!"}
+        - {role: assistant, text: "Szívesen!"}
+    evaluators:
+      - MaxChars: 400

@@ -977,7 +977,7 @@ dependencies = [
     { name = "httpx" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-sdk" },
-    { name = "pydantic-ai-slim", extra = ["mcp", "openai", "ui"] },
+    { name = "pydantic-ai-slim", extra = ["mcp", "openai", "spec", "ui"] },
     { name = "pydantic-settings" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlalchemy", extra = ["asyncio"] },
@@ -989,6 +989,7 @@ dev = [
     { name = "anyio" },
     { name = "dirty-equals" },
     { name = "fastmcp" },
+    { name = "pydantic-ai-slim", extra = ["evals"] },
     { name = "pytest" },
     { name = "pytest-playwright" },
     { name = "respx" },
@@ -1005,7 +1006,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.30" },
     { name = "opentelemetry-sdk", specifier = ">=1.30" },
-    { name = "pydantic-ai-slim", extras = ["openai", "mcp", "ui"], specifier = ">=2.59,<3" },
+    { name = "pydantic-ai-slim", extras = ["openai", "mcp", "ui", "spec"], specifier = ">=2.59,<3" },
     { name = "pydantic-settings", specifier = ">=2.10" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
@@ -1017,6 +1018,7 @@ dev = [
     { name = "anyio", specifier = ">=4" },
     { name = "dirty-equals", specifier = ">=0.9" },
     { name = "fastmcp", specifier = ">=4.1.3" },
+    { name = "pydantic-ai-slim", extras = ["evals"], specifier = ">=2.59,<3" },
     { name = "pytest", specifier = ">=8" },
     { name = "pytest-playwright", specifier = ">=0.10.0" },
     { name = "respx", specifier = ">=0.22" },
@@ -1476,12 +1478,19 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+evals = [
+    { name = "pydantic-evals" },
+]
 mcp = [
     { name = "fastmcp-slim", extra = ["client"] },
 ]
 openai = [
     { name = "openai" },
     { name = "tiktoken" },
+]
+spec = [
+    { name = "pydantic-handlebars" },
+    { name = "pyyaml" },
 ]
 ui = [
     { name = "starlette" },
@@ -1560,6 +1569,23 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-evals"
+version = "2.59.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "logfire-api" },
+    { name = "pydantic" },
+    { name = "pydantic-ai-slim" },
+    { name = "pyyaml" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f5/4d/9fe28285c775a07781d4ade3510a5e7cd4e82500f9527c4a79b542fa3bdf/pydantic_evals-2.59.0.tar.gz", hash = "sha256:0d14d621ec2c85939601414e3541aaed8fcb2adc7cc6e8feeda21beb9025c291", size = 92185, upload-time = "2026-10-21T05:00:39.765Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/69/c4/0db740716197ad51c847c9b2d54f14d0629b0d4ab7cb323e077a07a157bd/pydantic_evals-2.59.0-py3-none-any.whl", hash = "sha256:b9fbb47eb91543bd6edf55cbb714ba52b24bb5c62f31d1318bb3802a6149279b", size = 107193, upload-time = "2026-10-21T05:00:27.074Z" },
+]
+
+[[package]]
 name = "pydantic-graph"
 version = "2.59.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1572,6 +1598,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e0/36/f00e344d48ab0065b5d93692dcd6245f4400dc946140b1fdc56657deb5d8/pydantic_graph-2.59.0.tar.gz", hash = "sha256:f8cf18e18cdea6c6ee412017373c156e4fadc0b4b205c174d564d878d1765989", size = 46085, upload-time = "2026-10-21T05:00:41.028Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/41/c55560304acbf4d9e3f9d55e9be424dfc486c8b65e9496c8a857efee3e17/pydantic_graph-2.59.0-py3-none-any.whl", hash = "sha256:cf8b699f7322690590345028191c7e5ced9e57606c026f2480f90dc9665f176f", size = 53275, upload-time = "2026-10-21T05:00:28.731Z" },
+]
+
+[[package]]
+name = "pydantic-handlebars"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/73/e55a1fe1a8788a5fa82d9209e796f4111e28f2d2fecab7173aa6d80516ad/pydantic_handlebars-0.2.1.tar.gz", hash = "sha256:d4124cfbf7d6e3bded9331a08ccccf6f29f3e3a93665b35b5d6061650aeeb49f", size = 176949, upload-time = "2026-05-25T01:24:38.354Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/11/364bc401f1d8fdb3947079fc43ffdfbfc9132d065981a03a95d2e87440c4/pydantic_handlebars-0.2.1-py3-none-any.whl", hash = "sha256:c713427d6498cf4b66814447d54753a2748f8a8d3a9f00c194192ddb3df61e52", size = 50476, upload-time = "2026-05-25T01:24:37.104Z" },
 ]
 
 [[package]]
