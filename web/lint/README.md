@@ -35,6 +35,8 @@ The code in `plugins/linguini` is the `skinapp` plugin renamed:
 - `no-barrel-file` reports value re-exports (`export * from`, `export { x } from`). It allows type-only re-exports.
 - `no-useless-else` reports an `else` that follows a branch ending in `return`, `throw`, `break` or `continue`.
 
+`no-raw-palette-color` is specific to Linguini. It reports Tailwind palette colours such as `text-green-600` and arbitrary colours such as `bg-[#be4a1b]` in string and template literals. App code uses the tokens in `src/index.css` instead. `black` and `white` are allowed. The rule is off in `lint/plugins`, whose rule tests contain these classes as fixtures.
+
 skinapp forked `plugins/anti-slop` from [dmmulroy/anti-slop](https://github.com/dmmulroy/anti-slop). The fork has these changes:
 
 - The code uses arrow functions only.

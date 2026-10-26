@@ -84,6 +84,7 @@ export const base = {
     "linguini/no-delete": "error",
     "linguini/no-enum": "error",
     "linguini/no-function": "error",
+    "linguini/no-raw-palette-color": "error",
     "linguini/no-useless-else": "error",
 
     "oxc/no-accumulating-spread": "error",
@@ -121,6 +122,12 @@ export const base = {
         "vitest/no-duplicate-hooks": "error",
         "vitest/no-focused-tests": "error",
         "vitest/no-identical-title": "error",
+      },
+    },
+    {
+      files: ["lint/plugins/**"],
+      rules: {
+        "linguini/no-raw-palette-color": "off",
       },
     },
   ],
