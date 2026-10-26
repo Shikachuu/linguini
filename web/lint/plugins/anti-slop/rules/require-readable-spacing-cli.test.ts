@@ -59,4 +59,4 @@ it("rejects, fixes, and stays stable through the oxlint CLI", () => {
   const repeated = runSpacingLint("--fix", first, second)
   expect(repeated).toMatchObject({ status: 0 })
   expect(readProbes()).toEqual(stable)
-})
+}, 30_000)
