@@ -2,6 +2,7 @@ import threading
 import time
 import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 import pytest
 from chat_models import Scripted, sse_events, vercel_body
@@ -11,6 +12,7 @@ from helpers import CSRF_HEADERS, chat, login_google, sql
 from pydantic_ai.models.test import TestModel
 
 from linguini.app import create_app
+from linguini.chat.tools import PurchasedItem
 from linguini.config import Settings
 
 pytestmark = pytest.mark.usefixtures("providers")
@@ -208,3 +210,8 @@ def test_session_header_carries_the_thread_id(settings: Settings) -> None:
         thread = client.post(f"/api/households/{home}/threads", json={}, headers=CSRF_HEADERS).json()["id"]
         chat(client, home, thread, "hi")
     assert scripted.settings_seen == [{"temperature": 0.4, "extra_headers": {"x-opencode-session": thread}}]
+
+
+def test_tool_dates_without_timezone_are_read_as_utc() -> None:
+    item = PurchasedItem.model_validate({"name": "tej", "quantity": 1, "unit": "l", "purchased_at": "2026-10-26"})
+    assert item.purchased_at == datetime(2026, 10, 26, tzinfo=UTC)

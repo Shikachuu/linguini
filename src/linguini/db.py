@@ -12,6 +12,7 @@ from typing import Annotated, override
 from alembic import command
 from alembic.config import Config
 from fastapi import Depends, Request
+from pydantic import AfterValidator
 from sqlalchemy import Connection, DateTime, Engine, TypeDecorator, create_engine, event
 from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
@@ -45,6 +46,18 @@ class UTCDateTime(TypeDecorator[datetime]):
     @override
     def process_result_value(self, value: datetime | None, dialect: object) -> datetime | None:
         return None if value is None else value.replace(tzinfo=UTC)
+
+
+def assume_utc(value: datetime) -> datetime:
+    """Read a naive datetime, such as a bare date, as UTC.
+
+    Returns:
+        An aware datetime.
+    """
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+UTCInput = Annotated[datetime, AfterValidator(assume_utc)]
 
 
 def utcnow() -> datetime:

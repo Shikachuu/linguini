@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field, field_validator
 
 from linguini.auth.sessions import CurrentAuth
-from linguini.db import ReadSession, WriteSession
+from linguini.db import ReadSession, UTCInput, WriteSession
 from linguini.households.router import MemberHousehold
 from linguini.inventory import service
 from linguini.inventory.units import Unit, dimension_of, from_base, parse_unit
@@ -25,8 +25,8 @@ class ItemIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     quantity: float = Field(gt=0)
     unit: str
-    purchased_at: datetime | None = None
-    expires_at: datetime | None = None
+    purchased_at: UTCInput | None = None
+    expires_at: UTCInput | None = None
     kifli_product_id: str | None = None
     notes: str | None = Field(default=None, max_length=500)
 
@@ -41,7 +41,7 @@ class ItemPatch(BaseModel):
 
     quantity: float | None = Field(default=None, ge=0)
     unit: str | None = None
-    expires_at: datetime | None = None
+    expires_at: UTCInput | None = None
     notes: str | None = Field(default=None, max_length=500)
 
     @field_validator("unit")
