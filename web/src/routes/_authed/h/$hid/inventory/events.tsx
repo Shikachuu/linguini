@@ -26,7 +26,7 @@ const History = () => {
   const names = new Map(items.data?.map((i) => [i.id, i.name]))
 
   return (
-    <div className="mx-auto max-w-2xl pb-6">
+    <div className="mx-auto max-w-content pb-6">
       <PageHeader
         title={
           <span className="flex items-center gap-1">

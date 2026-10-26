@@ -11,6 +11,7 @@ import {
   useRenameThread,
 } from "@/api/gen/endpoints/chat/chat"
 import type { ThreadOut } from "@/api/gen/model"
+import { PageHeader } from "@/components/app-shell"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,10 +62,7 @@ export const ThreadList = ({ hid, activeId }: { hid: string; activeId?: string }
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
-        <h1 className="text-xl font-semibold">Chats</h1>
-        <NewChatButton hid={hid} />
-      </div>
+      <PageHeader title="Chats" actions={<NewChatButton hid={hid} />} />
       {threads.isPending && <Skeleton className="mx-4 h-10" />}
       {threads.isError && <p className="px-4 text-sm text-destructive">{errorMessage(threads.error)}</p>}
       {threads.data?.length === 0 && <p className="px-4 text-sm text-muted-foreground">No chats yet.</p>}

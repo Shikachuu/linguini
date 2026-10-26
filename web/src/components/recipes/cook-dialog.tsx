@@ -48,7 +48,7 @@ export const CookDialog = ({ hid, recipe }: { hid: string; recipe: RecipeOut }) 
             {cook.data.results.map((line) => (
               <li key={line.name} className="flex items-center gap-2 text-sm">
                 {line.ok ? (
-                  <CheckIcon className="size-4 text-green-600" aria-label="done" />
+                  <CheckIcon className="size-4 text-success" aria-label="done" />
                 ) : (
                   <XIcon className="size-4 text-destructive" aria-label="failed" />
                 )}

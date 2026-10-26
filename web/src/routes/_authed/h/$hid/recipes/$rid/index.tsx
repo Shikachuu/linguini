@@ -33,7 +33,7 @@ const RecipeView = () => {
   const r = recipe.data
 
   return (
-    <article className="mx-auto max-w-2xl pb-6">
+    <article className="mx-auto max-w-content pb-6">
       <PageHeader
         title={r.title}
         actions={

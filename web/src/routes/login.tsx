@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { z } from "zod"
 import { useConfig } from "@/api/gen/endpoints/meta/meta"
+import { Wordmark } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -38,7 +39,9 @@ export const Login = () => {
     <main className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Linguini</CardTitle>
+          <CardTitle className="text-2xl">
+            <Wordmark />
+          </CardTitle>
           <CardDescription>
             {invite === undefined ? "Sign in to your household." : "Sign in to join the household you were invited to."}
           </CardDescription>

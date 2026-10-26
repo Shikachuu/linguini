@@ -23,7 +23,7 @@ const EditRecipe = () => {
   })
 
   return (
-    <div className="mx-auto max-w-2xl pb-6">
+    <div className="mx-auto max-w-content pb-6">
       <PageHeader title="Edit recipe" />
       {recipe.isPending && <Skeleton className="mx-4 h-40" />}
       {recipe.isError && <p className="px-4 text-sm text-destructive">{errorMessage(recipe.error)}</p>}

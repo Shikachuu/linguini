@@ -27,7 +27,7 @@ const Settings = () => {
   const { hid } = Route.useParams()
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-4 pb-6">
+    <div className="mx-auto grid max-w-content gap-4 pb-6">
       <PageHeader title="Settings" />
       <div className="grid gap-4 px-4">
         <HouseholdCard hid={hid} />

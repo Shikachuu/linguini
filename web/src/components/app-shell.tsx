@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router"
+import { cn } from "cn"
 import {
   BookOpenIcon,
   ChevronsUpDownIcon,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react"
 import type { ReactNode } from "react"
 import { useMe } from "@/api/gen/endpoints/auth/auth"
+import { LogoMark } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { APP_NAME } from "@/lib/brand"
 
 const NAV = [
   { to: "/h/$hid/chat", label: "Chat", icon: MessageSquareIcon },
@@ -25,6 +28,10 @@ const NAV = [
   { to: "/h/$hid/inventory", label: "Pantry", icon: PackageIcon },
   { to: "/h/$hid/settings", label: "Settings", icon: SettingsIcon },
 ] as const
+
+const SIDEBAR_LINK = "flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
+
+const SIDEBAR_LINK_ACTIVE = { className: "bg-accent font-medium" }
 
 const HouseholdSwitcher = ({ hid }: { hid: string }) => {
   const { data: me } = useMe()
@@ -58,30 +65,26 @@ export const AppShell = ({ hid, children }: { hid: string; children: ReactNode }
   return (
     <div className="flex h-dvh flex-col md:flex-row">
       <aside className="hidden w-56 shrink-0 flex-col gap-1 border-r p-3 md:flex">
-        <HouseholdSwitcher hid={hid} />
+        <div className="flex min-w-0 items-center gap-1 pl-2">
+          <LogoMark aria-label={APP_NAME} />
+          <HouseholdSwitcher hid={hid} />
+        </div>
         <nav className="mt-2 flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              params={{ hid }}
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
-              activeProps={{ className: "bg-accent font-medium" }}
-            >
+            <Link key={to} to={to} params={{ hid }} className={SIDEBAR_LINK} activeProps={SIDEBAR_LINK_ACTIVE}>
               <Icon className="size-4" /> {label}
             </Link>
           ))}
         </nav>
-        <Link
-          to="/account"
-          className="mt-auto flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent"
-          activeProps={{ className: "bg-accent font-medium" }}
-        >
+        <Link to="/account" className={cn(SIDEBAR_LINK, "mt-auto")} activeProps={SIDEBAR_LINK_ACTIVE}>
           <UserIcon className="size-4" /> Account
         </Link>
       </aside>
       <header className="flex h-12 shrink-0 items-center justify-between border-b px-2 md:hidden">
-        <HouseholdSwitcher hid={hid} />
+        <div className="flex min-w-0 items-center gap-1 pl-1">
+          <LogoMark aria-label={APP_NAME} />
+          <HouseholdSwitcher hid={hid} />
+        </div>
         <Button asChild variant="ghost" size="icon" aria-label="Account">
           <Link to="/account">
             <UserIcon />

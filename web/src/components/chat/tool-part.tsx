@@ -20,7 +20,7 @@ export const ToolPart = ({ hid, part }: { hid: string; part: ToolUIPart | Dynami
           {lines.map((line, index) => (
             <li key={line.event_id ?? index} className="flex items-center gap-2">
               {line.ok ? (
-                <CheckIcon className="size-4 shrink-0 text-green-600" aria-label="done" />
+                <CheckIcon className="size-4 shrink-0 text-success" aria-label="done" />
               ) : (
                 <XIcon className="size-4 shrink-0 text-destructive" aria-label="failed" />
               )}
