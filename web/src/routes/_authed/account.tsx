@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from "lucide-react"
 import { useDeleteMe, useLogout, useMe } from "@/api/gen/endpoints/auth/auth"
 import { useConfig } from "@/api/gen/endpoints/meta/meta"
 import { Confirm } from "@/components/confirm"
+import { ThemePicker } from "@/components/theme-picker"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { errorMessage } from "@/lib/errors"
@@ -33,7 +34,7 @@ const Account = () => {
   const linkable = PROVIDERS.filter((p) => config?.providers[p] === true && !linked.has(p))
 
   return (
-    <main className="mx-auto grid max-w-2xl gap-4 p-4">
+    <main className="mx-auto grid max-w-content gap-4 p-4">
       <div className="flex items-center gap-1">
         <Button asChild variant="ghost" size="icon" aria-label="Back">
           <Link to="/">
@@ -75,6 +76,14 @@ const Account = () => {
           >
             Sign out
           </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ThemePicker />
         </CardContent>
       </Card>
       <Card>
