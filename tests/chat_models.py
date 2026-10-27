@@ -3,7 +3,7 @@ import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 
-from pydantic_ai.messages import ModelMessage, ModelRequest, RetryPromptPart, ToolReturnPart, UserPromptPart
+from pydantic_ai.messages import ModelMessage, ModelRequest, RetryFeedbackPart, ToolReturnPart, UserPromptPart
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, DeltaToolCalls, FunctionModel
 
 from linguini.chat.prompts import REPLY_LANGUAGE
@@ -25,13 +25,17 @@ def last_user_text(messages: list[ModelMessage]) -> str:
 def tool_returns(message: ModelMessage) -> list[ToolReturnPart]:
     if not isinstance(message, ModelRequest):
         return []
-    return [p for p in message.parts if isinstance(p, ToolReturnPart)]
+    return [p for p in message.parts if isinstance(p, ToolReturnPart) and p.outcome != "retried"]
 
 
-def retry_parts(message: ModelMessage) -> list[RetryPromptPart]:
+def retry_parts(message: ModelMessage) -> list[ToolReturnPart | RetryFeedbackPart]:
     if not isinstance(message, ModelRequest):
         return []
-    return [p for p in message.parts if isinstance(p, RetryPromptPart)]
+    return [
+        p
+        for p in message.parts
+        if isinstance(p, RetryFeedbackPart) or (isinstance(p, ToolReturnPart) and p.outcome == "retried")
+    ]
 
 
 def call(name: str, args: dict, call_id: str) -> DeltaToolCalls:
