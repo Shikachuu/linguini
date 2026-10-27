@@ -317,13 +317,26 @@ export const MessageBranchPage = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
+const isShopLink = (url: string): boolean => {
+  try {
+    const { hostname, protocol } = new URL(url);
+    return protocol === "https:" && (hostname === "kifli.hu" || hostname.endsWith(".kifli.hu"));
+  } catch {
+    return false;
+  }
+};
+
+const ImageAlt = ({ alt }: { alt?: string }) => <span>{alt}</span>;
+
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
+  ({ className, components, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
+      components={{ ...components, img: ImageAlt }}
+      linkSafety={{ enabled: true, onLinkCheck: isShopLink }}
       {...props}
     />
   ),
