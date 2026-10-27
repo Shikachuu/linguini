@@ -1,9 +1,18 @@
 import asyncio
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 
-from pydantic_ai.messages import ModelMessage, ModelRequest, RetryFeedbackPart, ToolReturnPart, UserPromptPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    RetryFeedbackPart,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, DeltaToolCalls, FunctionModel
 
 from linguini.chat.prompts import REPLY_LANGUAGE
@@ -40,6 +49,24 @@ def retry_parts(message: ModelMessage) -> list[ToolReturnPart | RetryFeedbackPar
 
 def call(name: str, args: dict, call_id: str) -> DeltaToolCalls:
     return {0: DeltaToolCall(name=name, json_args=json.dumps(args), tool_call_id=call_id)}
+
+
+def streamed(respond: Callable[[list[ModelMessage], AgentInfo], ModelResponse]) -> FunctionModel:
+    """A FunctionModel that also streams, as the guarded chat agent always streams."""
+
+    async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str | DeltaToolCalls]:
+        for index, part in enumerate(respond(messages, info).parts):
+            await asyncio.sleep(0)
+            if isinstance(part, TextPart):
+                yield part.content
+            elif isinstance(part, ToolCallPart):
+                yield {
+                    index: DeltaToolCall(
+                        name=part.tool_name, json_args=part.args_as_json_str(), tool_call_id=part.tool_call_id
+                    )
+                }
+
+    return FunctionModel(respond, stream_function=stream)
 
 
 def amount(text: str) -> dict:
@@ -116,6 +143,14 @@ class Scripted:
                 yield call("kifli_search_products", {"query": prompt[5:]}, "call-shop")
             else:
                 yield f"shop tools: {sorted(t for t in tools if t.startswith('kifli'))} not connected"
+        elif prompt == "list":
+            yield call("list_items", {}, "call-list-items")
+        elif prompt.startswith("say "):
+            text, _, add = prompt[4:].partition(" && add ")
+            for chunk in text.split("|"):
+                yield chunk
+            if add:
+                yield call("add_items", amount(add), "call-add-after-text")
         elif prompt == "wait":
             self.gate = asyncio.Event()
             yield "waiting..."
@@ -129,6 +164,20 @@ class Scripted:
 
     def model(self) -> FunctionModel:
         return FunctionModel(stream_function=self.stream, model_name="scripted")
+
+
+def gate_model(
+    off_topic: float = 0.0, attack: float = 0.0, language: str = "en", *, seen: list[str] | None = None
+) -> FunctionModel:
+    """A stand-in for the decision model behind the topic gate, answering with a fixed verdict."""
+
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        if seen is not None:
+            seen.append(last_user_text(messages))
+        verdict = {"off_topic": off_topic, "attack": attack, "language": language}
+        return ModelResponse(parts=[ToolCallPart(info.output_tools[0].name, verdict)])
+
+    return FunctionModel(respond, model_name="gate")
 
 
 def vercel_body(*texts: str, roles: tuple[str, ...] | None = None, trigger: str = "submit-message") -> dict:

@@ -12,6 +12,23 @@ from linguini.kifli.oauth import LiveConnection
 
 
 @dataclass(slots=True)
+class GuardState:
+    """What the guardrails decided during one run."""
+
+    off_topic: float | None = None
+    attack: float | None = None
+    language: str | None = None
+    blocked: bool = False
+    leaked: bool = False
+    released: dict[int, str] = field(default_factory=dict)
+    cut_index: int | None = None
+
+
+def _name(text: str) -> str:
+    return " ".join(text.replace("«", "").replace("»", "").split())[:80]
+
+
+@dataclass(slots=True)
 class AgentDeps:
     """Everything a run needs to know about who is asking and where to write."""
 
@@ -31,6 +48,7 @@ class AgentDeps:
     kifli_server: object | None = None
     extra_notes: list[str] = field(default_factory=list)
     undid_previous_turn: bool = False
+    guard: GuardState = field(default_factory=GuardState)
 
     def prompt_context(self) -> ChatContext:
         """The facts about this run that the instructions mention.
@@ -42,9 +60,9 @@ class AgentDeps:
             today=self.now.strftime("%Y-%m-%d"),
             weekday=self.now.strftime("%A"),
             locale=self.locale,
-            household_name=self.household_name,
-            members=self.member_names,
-            user_name=self.user_name,
+            household_name=_name(self.household_name),
+            members=[_name(m) for m in self.member_names],
+            user_name=_name(self.user_name),
             inventory_snapshot=self.inventory_snapshot,
             kifli_broken=self.kifli_broken,
             kifli_missing=self.kifli is None and self.kifli_server is None,

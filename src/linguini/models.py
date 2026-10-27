@@ -84,6 +84,7 @@ class RunStatus(StrEnum):
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     FAILED = "failed"
+    BLOCKED = "blocked"
 
 
 class User(SQLModel, table=True):

@@ -58,6 +58,7 @@ def settings(tmp_path: Path, apple_private_key_pem: str) -> Settings:
         apple_key_id="KEY",
         apple_private_key=SecretStr(apple_private_key_pem),
         apple_services_id="com.example.web",
+        guard_model="",
         apple_bundle_ids=["com.example.ios"],
     )
 

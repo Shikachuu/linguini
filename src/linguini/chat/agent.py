@@ -11,11 +11,14 @@ from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.models import Model, ModelRequestContext
 from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.models.system_one import SystemOneModel
 from pydantic_ai.profiles.openai import OpenAIModelProfile
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.providers.system_one import SystemOneProvider
 from pydantic_ai.toolsets import AbstractToolset
 
 from linguini.chat.deps import AgentDeps
+from linguini.chat.guard import GuardConfig, guard_capabilities
 from linguini.chat.prompts import CHAT_CONTEXT, CHAT_SPEC, REPLY_LANGUAGE, SUMMARY_SPEC
 from linguini.chat.tools import inventory_toolset, recipe_toolset
 from linguini.config import Settings
@@ -39,6 +42,17 @@ def build_model(settings: Settings, model_settings: ModelSettings | None = None)
         supports_json_schema_output=settings.model_profile.get("json_schema_output", True),
     )
     return OpenAIChatModel(settings.model, provider=provider, profile=profile, settings=model_settings)
+
+
+def build_decision_model(settings: Settings, name: str) -> Model:
+    """Construct a decision model served over the System One API, such as the topic gate's.
+
+    Returns:
+        A decision model.
+    """
+    key = settings.decisions_api_key or settings.openai_api_key
+    provider = SystemOneProvider(base_url=str(settings.decisions_base_url), api_key=key.get_secret_value())
+    return SystemOneModel(name, provider=provider)
 
 
 def session_settings(settings: Settings, session_id: str) -> ModelSettings | None:
@@ -79,8 +93,15 @@ class ReplyLanguageReminder(AbstractCapability[AgentDeps]):
         return replace(request_context, messages=messages)
 
 
-def build_agent(model: Model, capabilities: Sequence[AbstractCapability[AgentDeps]] = ()) -> Agent[AgentDeps, str]:
+UNSET_CANARY = "lgn-unconfigured"
+
+
+def build_agent(
+    model: Model, guard: GuardConfig | None = None, capabilities: Sequence[AbstractCapability[AgentDeps]] = ()
+) -> Agent[AgentDeps, str]:
     """Create the household agent bound to ``model``.
+
+    Without ``guard`` the topic gate is off; redaction, tool screening and the output buffer always run.
 
     Returns:
         The agent, with the inventory and recipe toolsets attached.
@@ -91,7 +112,11 @@ def build_agent(model: Model, capabilities: Sequence[AbstractCapability[AgentDep
         model=model,
         instructions=chat_context,
         toolsets=[inventory_toolset, recipe_toolset],
-        capabilities=[ReplyLanguageReminder(), *capabilities],
+        capabilities=[
+            ReplyLanguageReminder(),
+            *guard_capabilities(guard or GuardConfig(UNSET_CANARY)),
+            *capabilities,
+        ],
     )
 
     @agent.toolset(per_run_step=False, id="kifli-mcp")

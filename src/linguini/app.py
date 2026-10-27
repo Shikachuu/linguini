@@ -21,7 +21,8 @@ from linguini import observability
 from linguini.auth.oidc import JwksCache
 from linguini.auth.router import router as auth_router
 from linguini.auth.sessions import CsrfMiddleware
-from linguini.chat.agent import build_agent, build_model, build_summarizer
+from linguini.chat.agent import build_agent, build_decision_model, build_model, build_summarizer
+from linguini.chat.guard import GuardConfig, build_gate, canary_for
 from linguini.chat.router import ThreadLocks
 from linguini.chat.router import router as chat_router
 from linguini.config import Settings, get_settings
@@ -91,7 +92,10 @@ async def sweep_expired(session: AsyncSession) -> None:
 
 
 def create_app(
-    settings: Settings | None = None, model: Model | None = None, summary_model: Model | None = None
+    settings: Settings | None = None,
+    model: Model | None = None,
+    summary_model: Model | None = None,
+    guard_model: Model | None = None,
 ) -> FastAPI:
     """Build the application; tests pass their own settings and models.
 
@@ -111,7 +115,9 @@ def create_app(
     tracing = observability.configure(settings)
     app.state.tracer_provider = tracing[0] if tracing else None
     capabilities = [tracing[1]] if tracing else []
-    app.state.agent = build_agent(chat_model, capabilities)
+    gate_model = guard_model or (build_decision_model(settings, settings.guard_model) if settings.guard_model else None)
+    gate = build_gate(gate_model, capabilities) if gate_model else None
+    app.state.agent = build_agent(chat_model, GuardConfig(canary_for(settings), gate), capabilities)
     app.state.summarizer = build_summarizer(summary_model or _summary_model(settings, chat_model), capabilities)
     app.state.thread_locks = ThreadLocks()
     app.add_middleware(GZipMiddleware, minimum_size=1024)

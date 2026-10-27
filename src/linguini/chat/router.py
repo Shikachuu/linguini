@@ -25,7 +25,9 @@ from sqlmodel import col, select
 from linguini.auth.sessions import CurrentAuth
 from linguini.chat import history
 from linguini.chat.agent import RUN_TIMEOUT, USAGE_LIMITS, session_settings
-from linguini.chat.deps import AgentDeps
+from linguini.chat.deps import AgentDeps, GuardState
+from linguini.chat.guard import finalize_for_storage
+from linguini.chat.redact import redact_text
 from linguini.config import Settings
 from linguini.db import Database, ReadSession, WriteSession, get_database, utcnow
 from linguini.households import service as households
@@ -40,6 +42,8 @@ log = logging.getLogger(__name__)
 UNTITLED = "New chat"
 AI_SDK_VERSION = 7
 STALE_LOCK_AFTER = timedelta(seconds=RUN_TIMEOUT + 60)
+MAX_BODY_BYTES = 64_000
+MAX_PROMPT_CHARS = 4_000
 
 
 class ThreadIn(BaseModel):
@@ -191,14 +195,20 @@ async def chat(
     comes from the server.
 
     Raises:
-        HTTPException: 409 when the thread already has a run in progress.
+        HTTPException: 413 when the body or the message is too long, 409 when the thread already has a run in
+            progress.
     """
     settings = request.app.state.settings
     agent: Agent[AgentDeps, str] = request.app.state.agent
-    run_input = VercelAIAdapter.build_run_input(await request.body())
+    body = await request.body()
+    if len(body) > MAX_BODY_BYTES:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Request body too large")
+    run_input = VercelAIAdapter.build_run_input(body)
     if not isinstance(run_input, SubmitMessage):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Only submit-message is supported")
     prompt = _newest_user_message(run_input.messages)
+    if len(_prompt_text(prompt)) > MAX_PROMPT_CHARS:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, f"Messages are limited to {MAX_PROMPT_CHARS} characters")
     run_input.messages = [prompt]
 
     locks: ThreadLocks = request.app.state.thread_locks
@@ -244,7 +254,9 @@ async def chat(
             else [],
         )
         adapter = VercelAIAdapter(agent, run_input, accept=request.headers.get("accept"), sdk_version=AI_SDK_VERSION)
-        bookkeeper = _RunBookkeeper(db, locks, run.id, thread_id, _prompt_text(prompt), thread.title == UNTITLED)
+        bookkeeper = _RunBookkeeper(
+            db, locks, run.id, thread_id, redact_text(_prompt_text(prompt)), thread.title == UNTITLED, deps.guard
+        )
         stream = adapter.run_stream(
             message_history=model_history,
             deps=deps,
@@ -275,7 +287,14 @@ class _RunBookkeeper:
     """Records how a run ended, whatever happens to the HTTP stream, then frees the thread."""
 
     def __init__(
-        self, db: Database, locks: ThreadLocks, run_id: uuid.UUID, thread_id: uuid.UUID, prompt: str, untitled: bool
+        self,
+        db: Database,
+        locks: ThreadLocks,
+        run_id: uuid.UUID,
+        thread_id: uuid.UUID,
+        prompt: str,
+        untitled: bool,
+        guard: GuardState,
     ) -> None:
         self.db = db
         self.locks = locks
@@ -283,11 +302,12 @@ class _RunBookkeeper:
         self.thread_id = thread_id
         self.prompt = prompt
         self.untitled = untitled
+        self.guard = guard
         self.status = RunStatus.FAILED
         self.new_messages: list[ModelMessage] = []
 
     async def on_complete(self, result: AgentRunResult[Any]) -> None:
-        self.status = RunStatus.COMPLETED
+        self.status = RunStatus.BLOCKED if self.guard.blocked else RunStatus.COMPLETED
         self.new_messages = list(result.new_messages())
 
     async def on_cancel(self, exc: RunCancelled) -> None:
@@ -310,7 +330,7 @@ class _RunBookkeeper:
         finished = utcnow()
         prompt_message = ModelRequest(parts=[UserPromptPart(self.prompt)])
         run.status = self.status
-        run.messages = history.dump_messages([prompt_message, *self.new_messages])
+        run.messages = history.dump_messages(finalize_for_storage([prompt_message, *self.new_messages], self.guard))
         run.finished_at = finished
         thread = await session.get(Thread, self.thread_id)
         if thread is not None:

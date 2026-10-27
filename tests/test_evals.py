@@ -1,4 +1,5 @@
 import pytest
+from chat_models import streamed
 from pydantic import SecretStr
 from pydantic_ai.messages import (
     ModelMessage,
@@ -55,7 +56,7 @@ def pantry_model(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse
 
 
 async def test_chat_task_runs_each_message_as_its_own_turn() -> None:
-    task = chat_task(FunctionModel(pantry_model), SETTINGS)
+    task = chat_task(streamed(pantry_model), SETTINGS)
     outcome = await task(ChatInputs(messages=["add", "undo"], inventory=[Stock(name="tej", quantity=1, unit="l")]))
     assert [c.name for c in outcome.tool_calls] == ["add_items", "undo"]
     assert outcome.inventory == [StockLevel(name="tej", quantity_base=1000, unit="l")]
@@ -81,7 +82,7 @@ async def test_chat_task_seeds_history_recipes_and_expiry() -> None:
         inventory=[Stock(name="joghurt", quantity=2, unit="pcs", expires_in_days=1, notes="opened")],
         recipes=[RecipeData(title="Lecsó", ingredients=[Ingredient(name="paprika", quantity=1, unit="kg")])],
     )
-    outcome = await chat_task(FunctionModel(model), SETTINGS)(inputs)
+    outcome = await chat_task(streamed(model), SETTINGS)(inputs)
     assert "- joghurt: 2 pcs (expires in" in str(seen[0].instructions)
     assert "Lecsó" in outcome.reply
 
@@ -89,7 +90,7 @@ async def test_chat_task_seeds_history_recipes_and_expiry() -> None:
 async def test_chat_task_rejects_a_case_with_invalid_inventory() -> None:
     inputs = ChatInputs(messages=["hi"], inventory=[Stock(name="tej", quantity=0, unit="l")])
     with pytest.raises(ValueError, match="case inventory rejected"):
-        await chat_task(FunctionModel(pantry_model), SETTINGS)(inputs)
+        await chat_task(streamed(pantry_model), SETTINGS)(inputs)
 
 
 async def test_summary_task_sends_rendered_conversation() -> None:

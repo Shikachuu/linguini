@@ -37,6 +37,16 @@ class Settings(BaseSettings):
     session_header: str | None = Field(
         default=None, description="Header carrying a stable per-thread id, e.g. x-opencode-session for OpenCode Go"
     )
+    guard_model: str = Field(
+        default="typesafe/jev-1.14",
+        description="Decision model that screens each message for off-topic requests and attacks; empty turns it off",
+    )
+    decisions_base_url: HttpUrl = Field(
+        default=HttpUrl("https://openrouter.ai/api/v1"), description="System One API base URL serving guard_model"
+    )
+    decisions_api_key: SecretStr | None = Field(
+        default=None, description="API key for decisions_base_url; defaults to openai_api_key"
+    )
 
     google_client_id: str | None = None
     google_client_secret: SecretStr | None = None
