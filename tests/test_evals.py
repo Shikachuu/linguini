@@ -113,8 +113,8 @@ async def test_summary_task_sends_rendered_conversation() -> None:
     )
     assert await summary_task(FunctionModel(capture), SETTINGS)(inputs) == "SUMMARY"
     assert prompts == [
-        "Earlier summary:\nold\n\nConversation:\n"
-        "User: hi\nAssistant called list_items({})\nTool list_items returned: []\nAssistant: empty"
+        "Earlier summary:\nold\n\nConversation:\n<conversation>\n"
+        "User: hi\nAssistant called list_items({})\nTool list_items returned: []\nAssistant: empty\n</conversation>"
     ]
 
 

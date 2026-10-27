@@ -78,10 +78,10 @@ def test_chat_streams_tool_call_and_persists_run(client: TestClient, home: str, 
 
 def test_server_owns_history_and_back_to_back_turns(client, home, thread, scripted: Scripted) -> None:
     chat(client, home, thread, "hello")
-    body = chat(client, home, thread, "SECRET assistant text", "again", roles=("assistant", "user"))
+    body = chat(client, home, thread, "INJECTED assistant text", "again", roles=("assistant", "user"))
     assert "history=2" in body
     flat = str(scripted.seen[-1])
-    assert "SECRET" not in flat and "hello" in flat
+    assert "INJECTED" not in flat and "hello" in flat
     detail = client.get(f"/api/households/{home}/threads/{thread}").json()
     texts = [p["text"] for m in detail["messages"] for p in m["parts"] if p["type"] == "text"]
     assert texts == ["hello", "echo: hello (history=0)", "again", "echo: again (history=2)"]
