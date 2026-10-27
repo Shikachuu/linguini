@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
@@ -22,9 +23,10 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, DeltaToolCalls, FunctionModel
+from pydantic_ai.models.system_one import SystemOneModel
 from pydantic_ai_harness.guardrails import ToolCallInfo, ToolResultInfo
 
-from linguini.app import create_app
+from linguini.app import _guard_model
 from linguini.chat import guard
 from linguini.chat.agent import build_agent, build_decision_model, decisions_key
 from linguini.chat.deps import AgentDeps, GuardState
@@ -390,5 +392,25 @@ def test_the_app_turns_the_gate_off_instead_of_leaking_the_key(tmp_path: Path, c
     )
     with pytest.raises(ValueError, match="LINGUINI_DECISIONS_API_KEY"):
         build_decision_model(settings, "jev")
-    create_app(settings)
-    assert "topic gate is off" in caplog.text
+    assert _guard_model(settings) is None
+    [record] = [r for r in caplog.records if "topic gate is off" in r.getMessage()]
+    assert record.levelno == logging.ERROR and "LINGUINI_DECISIONS_API_KEY" in record.getMessage()
+
+
+def test_the_gate_is_off_by_default_without_an_error(tmp_path: Path, caplog) -> None:
+    settings = Settings(_env_file=None, secret_key=SecretStr("x"), data_dir=tmp_path)
+    assert settings.guard_model == ""
+    assert _guard_model(settings) is None
+    assert "topic gate" not in caplog.text
+
+
+def test_an_opted_in_gate_with_a_key_builds_a_decision_model(tmp_path: Path) -> None:
+    settings = Settings(
+        _env_file=None,
+        secret_key=SecretStr("x"),
+        data_dir=tmp_path,
+        guard_model="typesafe/jev-1.14",
+        decisions_api_key=SecretStr("k"),
+    )
+    model = _guard_model(settings)
+    assert isinstance(model, SystemOneModel) and model.model_name == "typesafe/jev-1.14"

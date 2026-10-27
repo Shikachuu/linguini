@@ -154,7 +154,7 @@ def _guard_model(settings: Settings) -> Model | None:
         return None
     if decisions_key(settings) is None:
         log.error(
-            "topic gate is off: %s is not the chat server, so set LINGUINI_DECISIONS_API_KEY or LINGUINI_GUARD_MODEL=",
+            "topic gate is off: %s is not the chat server, so set LINGUINI_DECISIONS_API_KEY",
             settings.decisions_base_url.host,
         )
         return None
