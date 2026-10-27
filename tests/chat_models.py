@@ -6,12 +6,18 @@ from dataclasses import dataclass, field
 from pydantic_ai.messages import ModelMessage, ModelRequest, RetryPromptPart, ToolReturnPart, UserPromptPart
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, DeltaToolCalls, FunctionModel
 
+from linguini.chat.prompts import REPLY_LANGUAGE
+
 
 def last_user_text(messages: list[ModelMessage]) -> str:
     for message in reversed(messages):
         if isinstance(message, ModelRequest):
             for part in reversed(message.parts):
-                if isinstance(part, UserPromptPart) and isinstance(part.content, str):
+                if (
+                    isinstance(part, UserPromptPart)
+                    and isinstance(part.content, str)
+                    and part.content != REPLY_LANGUAGE
+                ):
                     return part.content
     return ""
 

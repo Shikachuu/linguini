@@ -55,6 +55,11 @@ fi
 uv run fastapi dev --entrypoint linguini.main:app
 """
 
+[tasks.eval]
+description = "Run the prompt evals against the model configured in .env (real, billed model calls)"
+env = { _.file = ".env" }
+run = "uv run python -m evals"
+
 [tasks.e2e]
 description = "Build the web app and run the browser end-to-end tests"
 run = [

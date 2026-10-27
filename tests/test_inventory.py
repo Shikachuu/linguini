@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from fastapi.testclient import TestClient
 from helpers import CSRF_HEADERS, login_google
@@ -189,3 +191,23 @@ def test_undo_last_turn_route_with_no_runs_is_empty(client: TestClient, home: st
         f"/api/households/{home}/events/undo-last-turn", params={"thread_id": thread}, headers=CSRF_HEADERS
     )
     assert response.status_code == 200 and response.json() == []
+
+
+def test_dates_without_timezone_are_read_as_utc(client: TestClient, home: str) -> None:
+    item = add(client, home, "Tej", 1, "l", purchased_at="2026-10-20", expires_at="2026-10-30T08:00:00")
+    assert item["last_purchased_at"].startswith("2026-10-20T00:00:00")
+    assert item["expires_at"].startswith("2026-10-30T08:00:00")
+
+
+def test_dates_with_offset_keep_their_instant(client: TestClient, home: str) -> None:
+    item = add(client, home, "Vaj", 1, "pcs", purchased_at="2026-10-20T10:00:00+02:00")
+    assert datetime.fromisoformat(item["last_purchased_at"]) == datetime(2026, 10, 20, 8, tzinfo=UTC)
+
+
+def test_patch_reads_naive_expiry_as_utc(client: TestClient, home: str) -> None:
+    item = add(client, home, "Joghurt", 2, "pcs")
+    patched = client.patch(
+        f"/api/households/{home}/items/{item['id']}", json={"expires_at": "2026-11-01"}, headers=CSRF_HEADERS
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["expires_at"].startswith("2026-11-01T00:00:00")

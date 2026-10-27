@@ -23,6 +23,7 @@ from pydantic_core import to_json, to_jsonable_python
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
+from linguini.chat.prompts import SUMMARY_INPUT, SummaryInput
 from linguini.db import Database
 from linguini.inventory.units import Unit, format_quantity
 from linguini.models import InventoryItem, Run, RunStatus, Thread
@@ -131,6 +132,15 @@ def render_for_summary(messages: Sequence[ModelMessage]) -> str:
     return "\n".join(lines)
 
 
+def summary_prompt(previous: str | None, conversation: str) -> str:
+    """The summarizer's user prompt for ``conversation``, merging an earlier summary when there is one.
+
+    Returns:
+        The rendered prompt.
+    """
+    return SUMMARY_INPUT.render(SummaryInput(previous=previous or "", conversation=conversation))
+
+
 async def summarize_if_needed(
     db: Database,
     thread_id: uuid.UUID,
@@ -177,8 +187,7 @@ async def _runs_to_fold(db: Database, thread_id: uuid.UUID, budget: int) -> tupl
 async def _fold(
     summarizer: Agent[None, str], previous: str | None, runs: Sequence[Run], model_settings: ModelSettings | None
 ) -> str:
-    text = render_for_summary(thread_messages(runs))
-    prompt = (f"Earlier summary:\n{previous}\n\n" if previous else "") + "Conversation:\n" + text
+    prompt = summary_prompt(previous, render_for_summary(thread_messages(runs)))
     result = await summarizer.run(prompt, usage_limits=SUMMARY_LIMITS, model_settings=model_settings)
     return result.output
 
@@ -216,20 +225,6 @@ def inventory_snapshot(items: Sequence[InventoryItem], now: datetime) -> str:
                 f"- {item.name}: {format_quantity(item.quantity_base, Unit(item.display_unit))} ({', '.join(flags)})"
             )
     return "\n".join(lines[:SNAPSHOT_LINES])
-
-
-def last_user_text(messages: Sequence[ModelMessage]) -> str | None:
-    """The newest user prompt text in a message list.
-
-    Returns:
-        The text or None.
-    """
-    for message in reversed(messages):
-        if isinstance(message, ModelRequest):
-            for part in reversed(message.parts):
-                if isinstance(part, UserPromptPart) and isinstance(part.content, str):
-                    return part.content
-    return None
 
 
 def title_from(text: str) -> str:

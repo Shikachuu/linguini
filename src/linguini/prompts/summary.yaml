@@ -1,0 +1,3 @@
+name: linguini-summarizer
+instructions: |
+  Summarize the conversation so far for the assistant's own memory. Keep, in this order: the household's allergies, intolerances and dietary limits; dishes cooked or planned; inventory decisions and purchases; open questions. Be factual and brief; use the conversation's language. If an earlier summary is given, merge it.

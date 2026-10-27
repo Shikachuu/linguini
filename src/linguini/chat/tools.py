@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from typing import Any
 
 from fastapi import HTTPException
@@ -11,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from pydantic_ai import FunctionToolset, ModelRetry, RunContext
 
 from linguini.chat.deps import AgentDeps
+from linguini.db import UTCInput
 from linguini.inventory import service
 from linguini.inventory.units import Unit, format_quantity, parse_unit
 from linguini.models import EventCause, InventoryItem, Recipe, RecipeSource
@@ -36,8 +36,8 @@ class ItemAmount(BaseModel):
 class PurchasedItem(ItemAmount):
     """An item being added to the pantry."""
 
-    purchased_at: datetime | None = Field(default=None, description="When it was bought; defaults to now")
-    expires_at: datetime | None = Field(default=None, description="Best-before date if known")
+    purchased_at: UTCInput | None = Field(default=None, description="When it was bought; defaults to now")
+    expires_at: UTCInput | None = Field(default=None, description="Best-before date if known")
     kifli_product_id: str | None = Field(default=None, description="Kifli product id when imported from an order")
 
 
@@ -142,7 +142,7 @@ async def consume_items(ctx: RunContext[AgentDeps], items: list[ItemAmount]) -> 
 
 @inventory_toolset.tool
 async def set_item(
-    ctx: RunContext[AgentDeps], item: ItemAmount, expires_at: datetime | None = None, notes: str | None = None
+    ctx: RunContext[AgentDeps], item: ItemAmount, expires_at: UTCInput | None = None, notes: str | None = None
 ) -> dict[str, Any]:
     """Set an item's absolute quantity, optionally changing its unit, expiry, or notes.
 
