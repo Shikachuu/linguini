@@ -3,6 +3,18 @@ uv = "0.13"
 node = "24"
 pnpm = "12"
 cloudflared = "2026"
+"github:DeusData/codebase-memory-mcp" = "0.11.0"
+
+[hooks]
+postinstall = "mise run bootstrap"
+
+[tasks.bootstrap]
+description = "Install dependencies and index repo"
+run = [
+  "uv sync --all-extras",
+  "pnpm -C web install --frozen-lockfile",
+  "codebase-memory-mcp cli index_repository --repo-path {{ config_root }}",
+]
 
 [tasks.check]
 description = "Lint, format check, type check, and test the API and web app, and check generated code is current"

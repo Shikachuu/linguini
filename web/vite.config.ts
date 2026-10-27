@@ -9,7 +9,10 @@ import { react as reactLint } from "./lint/oxlint.ts"
 export default defineConfig({
   fmt: {
     ...formatter,
-    sortTailwindcss: { ...formatter.sortTailwindcss, stylesheet: "./src/index.css" },
+    sortTailwindcss: {
+      ...formatter.sortTailwindcss,
+      stylesheet: "./src/index.css",
+    },
   },
   lint: {
     ...reactLint,
