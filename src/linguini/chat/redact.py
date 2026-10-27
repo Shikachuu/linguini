@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from pydantic_ai import ToolReturn
 from pydantic_ai_harness import GuardrailResult
@@ -16,7 +16,7 @@ _HU_PHONE = re.compile(r"(?<![\w+])(?:(?:\+|00)36|06)[ ./-]?\(?(?:1|[2-9]\d)\)?[
 _INTL_PHONE = re.compile(r"(?<![\w+])\+[1-9][\d ./()-]{6,20}\d(?!\d)")
 _ID_KEY = re.compile(r"(^|_)id$|ean|barcode|gtin", re.IGNORECASE)
 _IMAGE = re.compile(r"!\[([^\]\n]*)\]\([^)\n]*\)")
-_HTML_IMAGE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+_HTML_IMAGE = re.compile(r"<img\b[^>]*(?:>|$)", re.IGNORECASE)
 _BOUNDARY = re.compile(r"[.!?…:;](?:\s)|\n")
 
 
@@ -42,8 +42,6 @@ DETECTORS: tuple[Callable[[str], GuardrailResult], ...] = (
     personal_data(only=["email"], placeholder="[EMAIL]"),
     redact_phones,
 )
-"""Ordered so an IBAN is labelled before its digit groups can read as a card; US SSNs are left out because
-their shape collides with Hungarian phone numbers."""
 
 
 def redact_text(text: str) -> str:
@@ -73,10 +71,10 @@ def redact_value(value: object, key: str = "") -> object:
         return [redact_value(v, key) for v in value]
     if isinstance(value, ToolReturn):
         content = value.content
-        return ToolReturn(
+        return replace(
+            value,
             return_value=redact_value(value.return_value),
             content=redact_text(content) if isinstance(content, str) else content,
-            metadata=value.metadata,
         )
     return value
 
@@ -89,8 +87,7 @@ LEAK_PHRASES = (
     "expires_at is authoritative when set",
     "names in «» were typed by people",
 )
-"""Verbatim lines of the chat instructions that no ordinary reply repeats. Two of them in one reply mean the
-model is reciting its instructions."""
+LEAK_PHRASE_THRESHOLD = 2
 
 
 def leak_at(text: str, canary: str) -> int | None:
@@ -102,8 +99,8 @@ def leak_at(text: str, canary: str) -> int | None:
     lowered = text.lower()
     found = [i for i in (lowered.find(canary.lower()),) if i != -1]
     hits = sorted((i, phrase) for phrase in LEAK_PHRASES if (i := lowered.find(phrase)) != -1)
-    if len(hits) >= 2:
-        found.append(hits[1][0])
+    if len(hits) >= LEAK_PHRASE_THRESHOLD:
+        found.append(hits[LEAK_PHRASE_THRESHOLD - 1][0])
     return min(found, default=None)
 
 
@@ -123,8 +120,8 @@ def _last_boundary(text: str, limit: int) -> int:
     return end
 
 
-def _hold_limit(clean: str, tail: int) -> int:
-    limit = len(clean) - tail
+def _hold_limit(clean: str, holdback_chars: int) -> int:
+    limit = len(clean) - holdback_chars
     pem = clean.rfind("-----BEGIN")
     if pem != -1 and "-----END" not in clean[pem:]:
         limit = min(limit, pem)
@@ -136,19 +133,16 @@ def _hold_limit(clean: str, tail: int) -> int:
 
 @dataclass
 class ReleaseBuffer:
-    """Holds back streamed text until it is safe to show.
-
-    Text is released at sentence boundaries that sit at least ``tail`` characters behind what has arrived, so a
-    phone number or key split across chunks is redacted before any of it is shown. A prompt leak cuts the text at
-    the sentence before it and appends ``notice``; nothing after a cut is released.
-    """
+    """Holds back streamed text until it is safe to show."""
 
     canary: str
     notice: str
-    tail: int = 200
+    drift_notice: str
+    holdback_chars: int = 200
     raw: str = ""
     sent: str = ""
     cut: bool = False
+    leaked: bool = False
     _screened_at: int = field(default=0, repr=False)
 
     def feed(self, delta: str) -> str:
@@ -166,7 +160,7 @@ class ReleaseBuffer:
         clean = screen(self.raw)
         if (released := self._cut_if_leaking(clean)) is not None:
             return released
-        end = _last_boundary(clean, _hold_limit(clean, self.tail))
+        end = _last_boundary(clean, _hold_limit(clean, self.holdback_chars))
         return self._release(clean, end)
 
     def finish(self) -> str:
@@ -183,10 +177,10 @@ class ReleaseBuffer:
         return self._release(clean, len(clean))
 
     def _release(self, clean: str, end: int) -> str:
+        if not clean.startswith(self.sent):
+            return self._cut(clean, len(self.sent), self.drift_notice)
         if end <= len(self.sent):
             return ""
-        if not clean.startswith(self.sent):
-            return self._cut(clean, len(self.sent))
         out = clean[len(self.sent) : end]
         self.sent += out
         return out
@@ -195,11 +189,12 @@ class ReleaseBuffer:
         at = leak_at(clean, self.canary)
         if at is None:
             return None
-        return self._cut(clean, max(_last_boundary(clean, at), len(self.sent)))
+        self.leaked = True
+        return self._cut(clean, max(_last_boundary(clean, at), len(self.sent)), self.notice)
 
-    def _cut(self, clean: str, end: int) -> str:
+    def _cut(self, clean: str, end: int, notice: str) -> str:
         out = clean[len(self.sent) : end] if clean.startswith(self.sent) else ""
-        out += self.notice
+        out += notice
         self.sent += out
         self.cut = True
         return out

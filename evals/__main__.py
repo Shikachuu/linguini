@@ -80,13 +80,20 @@ async def main(argv: list[str]) -> int:
     if args.judge_model == guard_name:
         print(f"note: {guard_name} both gates and grades; the gate is graded by deterministic checks", file=sys.stderr)
     model = build_model(settings.model_copy(update={"model": model_name}))
-    guard_model = build_decision_model(settings, guard_name) if guard_name else None
-    set_judge_model(build_decision_model(settings, args.judge_model))
+    try:
+        guard_model = build_decision_model(settings, guard_name) if guard_name else None
+        set_judge_model(build_decision_model(settings, args.judge_model))
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 2
 
     selected = DATASET_NAMES if args.dataset == "all" else [args.dataset]
     if guard_model is None and {"guardrails", "topic_gate"} & set(selected):
-        print("the guardrails and topic_gate datasets need a guard model", file=sys.stderr)
-        return 2
+        if args.dataset != "all":
+            print(f"the {args.dataset} dataset needs a guard model", file=sys.stderr)
+            return 2
+        print("note: no guard model, skipping guardrails and topic_gate", file=sys.stderr)
+        selected = ["chat", "summary"]
     runs: list[tuple[Dataset[Any, Any, Any], Any]] = []
     if "chat" in selected:
         runs.append((load_chat(), chat_task(model, settings, guard_model)))

@@ -19,6 +19,7 @@ class GuardState:
     attack: float | None = None
     language: str | None = None
     blocked: bool = False
+    gate_failed: bool = False
     leaked: bool = False
     released: dict[int, str] = field(default_factory=dict)
     cut_index: int | None = None

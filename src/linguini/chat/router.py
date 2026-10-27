@@ -25,7 +25,7 @@ from sqlmodel import col, select
 from linguini.auth.sessions import CurrentAuth
 from linguini.chat import history
 from linguini.chat.agent import RUN_TIMEOUT, USAGE_LIMITS, session_settings
-from linguini.chat.deps import AgentDeps, GuardState
+from linguini.chat.deps import AgentDeps
 from linguini.chat.guard import finalize_for_storage
 from linguini.chat.redact import redact_text
 from linguini.config import Settings
@@ -200,6 +200,9 @@ async def chat(
     """
     settings = request.app.state.settings
     agent: Agent[AgentDeps, str] = request.app.state.agent
+    declared = request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > MAX_BODY_BYTES:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Request body too large")
     body = await request.body()
     if len(body) > MAX_BODY_BYTES:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Request body too large")
@@ -255,7 +258,14 @@ async def chat(
         )
         adapter = VercelAIAdapter(agent, run_input, accept=request.headers.get("accept"), sdk_version=AI_SDK_VERSION)
         bookkeeper = _RunBookkeeper(
-            db, locks, run.id, thread_id, redact_text(_prompt_text(prompt)), thread.title == UNTITLED, deps.guard
+            db,
+            locks,
+            run.id,
+            thread_id,
+            redact_text(_prompt_text(prompt)),
+            thread.title == UNTITLED,
+            deps,
+            request.app.state.canary,
         )
         stream = adapter.run_stream(
             message_history=model_history,
@@ -294,7 +304,8 @@ class _RunBookkeeper:
         thread_id: uuid.UUID,
         prompt: str,
         untitled: bool,
-        guard: GuardState,
+        deps: AgentDeps,
+        canary: str,
     ) -> None:
         self.db = db
         self.locks = locks
@@ -302,12 +313,13 @@ class _RunBookkeeper:
         self.thread_id = thread_id
         self.prompt = prompt
         self.untitled = untitled
-        self.guard = guard
+        self.deps = deps
+        self.canary = canary
         self.status = RunStatus.FAILED
         self.new_messages: list[ModelMessage] = []
 
     async def on_complete(self, result: AgentRunResult[Any]) -> None:
-        self.status = RunStatus.BLOCKED if self.guard.blocked else RunStatus.COMPLETED
+        self.status = RunStatus.BLOCKED if self.deps.guard.blocked else RunStatus.COMPLETED
         self.new_messages = list(result.new_messages())
 
     async def on_cancel(self, exc: RunCancelled) -> None:
@@ -330,7 +342,8 @@ class _RunBookkeeper:
         finished = utcnow()
         prompt_message = ModelRequest(parts=[UserPromptPart(self.prompt)])
         run.status = self.status
-        run.messages = history.dump_messages(finalize_for_storage([prompt_message, *self.new_messages], self.guard))
+        stored = finalize_for_storage([prompt_message, *self.new_messages], self.deps, self.canary)
+        run.messages = history.dump_messages(stored)
         run.finished_at = finished
         thread = await session.get(Thread, self.thread_id)
         if thread is not None:

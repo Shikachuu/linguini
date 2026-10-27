@@ -70,6 +70,7 @@ class TurnGuard(BaseModel):
     attack: float | None
     blocked: bool
     leaked: bool
+    gate_failed: bool = False
 
 
 class ChatOutcome(BaseModel):
@@ -78,23 +79,20 @@ class ChatOutcome(BaseModel):
     tool_calls: list[ToolCall]
     inventory: list[StockLevel]
     guard: list[TurnGuard] = []
-    sent: list[str] = Field(default=[], exclude=True)
-    """Every request sent to the model under test, as JSON; kept out of reports and the judge's view."""
+    model_requests: list[str] = Field(default=[], exclude=True)
 
 
-_sent: ContextVar[list[str]] = ContextVar("sent")
+_model_requests: ContextVar[list[str]] = ContextVar("model_requests")
 
 
 class RecordingModel(WrapperModel):
-    """Records what reaches the model, so evaluators can check that redaction happened before it."""
-
     async def request(
         self,
         messages: list[ModelMessage],
         model_settings: ModelSettings | None,
         model_request_parameters: ModelRequestParameters,
     ) -> ModelResponse:
-        _sent.get([]).append(to_json(messages).decode())
+        _model_requests.get([]).append(to_json(messages).decode())
         return await super().request(messages, model_settings, model_request_parameters)
 
     @asynccontextmanager
@@ -105,7 +103,7 @@ class RecordingModel(WrapperModel):
         model_request_parameters: ModelRequestParameters,
         run_context: RunContext[Any] | None = None,
     ) -> AsyncGenerator[StreamedResponse]:
-        _sent.get([]).append(to_json(messages).decode())
+        _model_requests.get([]).append(to_json(messages).decode())
         async with super().request_stream(messages, model_settings, model_request_parameters, run_context) as stream:
             yield stream
 
@@ -117,7 +115,7 @@ def chat_task(
     agent = build_agent(RecordingModel(model), GuardConfig(canary_for(settings), gate))
 
     async def run(inputs: ChatInputs) -> ChatOutcome:
-        _sent.set([])
+        _model_requests.set([])
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "eval.db"
             run_migrations(path)
@@ -164,7 +162,11 @@ async def _converse(agent: Agent[AgentDeps, str], db: Database, settings: Settin
         )
         calls.extend(_tool_calls(result.new_messages()))
         g = deps.guard
-        guards.append(TurnGuard(off_topic=g.off_topic, attack=g.attack, blocked=g.blocked, leaked=g.leaked))
+        guards.append(
+            TurnGuard(
+                off_topic=g.off_topic, attack=g.attack, blocked=g.blocked, leaked=g.leaked, gate_failed=g.gate_failed
+            )
+        )
         if not g.blocked:
             messages = result.all_messages()
         replies.append(result.output)
@@ -182,7 +184,7 @@ async def _converse(agent: Agent[AgentDeps, str], db: Database, settings: Settin
         tool_calls=calls,
         inventory=stock,
         guard=guards,
-        sent=list(_sent.get([])),
+        model_requests=list(_model_requests.get([])),
     )
 
 

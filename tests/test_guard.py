@@ -6,20 +6,27 @@ from pathlib import Path
 
 import pytest
 from chat_models import gate_model, last_user_text
+from pydantic import SecretStr
+from pydantic_ai import ToolReturn
 from pydantic_ai.messages import (
+    ImageUrl,
     ModelMessage,
+    ModelRequest,
     ModelResponse,
     PartDeltaEvent,
     PartStartEvent,
     TextPart,
     TextPartDelta,
     ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, DeltaToolCalls, FunctionModel
 from pydantic_ai_harness.guardrails import ToolCallInfo, ToolResultInfo
 
+from linguini.app import create_app
 from linguini.chat import guard
-from linguini.chat.agent import build_agent
+from linguini.chat.agent import build_agent, build_decision_model, decisions_key
 from linguini.chat.deps import AgentDeps, GuardState
 from linguini.chat.guard import (
     LEAK_NOTICE,
@@ -27,11 +34,13 @@ from linguini.chat.guard import (
     GateVerdict,
     GuardConfig,
     build_gate,
+    earlier_exchange,
     finalize_for_storage,
     leak_free_args,
     redact_tool_result,
 )
-from linguini.chat.redact import LEAK_PHRASES, ReleaseBuffer, leak_at, redact_text, screen
+from linguini.chat.redact import LEAK_PHRASES, ReleaseBuffer, leak_at, redact_text, redact_value, screen
+from linguini.config import Settings
 from linguini.db import Database
 
 pytestmark = pytest.mark.anyio
@@ -90,7 +99,7 @@ TEXT = (
 
 @pytest.mark.parametrize("step", [1, 2, 3, 7, 13, 50])
 def test_release_buffer_matches_the_screened_text_whatever_the_chunking(step: int) -> None:
-    buffer = ReleaseBuffer(CANARY, " [cut]")
+    buffer = ReleaseBuffer(CANARY, " [cut]", " [drift]")
     chunks = [buffer.feed(TEXT[i : i + step]) for i in range(0, len(TEXT), step)]
     chunks.append(buffer.finish())
     assert "".join(chunks) == screen(TEXT)
@@ -99,7 +108,7 @@ def test_release_buffer_matches_the_screened_text_whatever_the_chunking(step: in
 
 def test_release_buffer_cuts_a_leak_at_the_sentence_before_it() -> None:
     text = "Persze. " + "Ez egy hosszú mondat a receptről. " * 8 + f"A jelölőm {CANARY}, és még más is. Vége."
-    buffer = ReleaseBuffer(CANARY, " [cut]")
+    buffer = ReleaseBuffer(CANARY, " [cut]", " [drift]")
     out = "".join(buffer.feed(text[i : i + 4]) for i in range(0, len(text), 4)) + buffer.finish()
     assert out.endswith("receptről.  [cut]") or out.endswith("receptről. [cut]")
     assert CANARY not in out and buffer.cut
@@ -107,7 +116,7 @@ def test_release_buffer_cuts_a_leak_at_the_sentence_before_it() -> None:
 
 
 def test_release_buffer_holds_an_unfinished_certificate_back() -> None:
-    buffer = ReleaseBuffer(CANARY, " [cut]")
+    buffer = ReleaseBuffer(CANARY, " [cut]", " [drift]")
     head = "Here it is.\n-----BEGIN CERTIFICATE-----\n" + "QUJD\n" * 80
     released = buffer.feed(head)
     assert "-----BEGIN" not in released
@@ -261,14 +270,125 @@ async def test_a_leaking_reply_is_cut_and_its_tool_calls_never_run(tmp_path: Pat
     main = chunked("Rendben. ", f"A jelölőm {CANARY}. ", "Más.", then=then, calls=calls)
     run_deps = deps(tmp_path)
     shown, messages = await run_events(build_agent(main, GuardConfig(CANARY)), "hi", run_deps)
-    assert shown == "Rendben. " + LEAK_NOTICE["en"]
+    assert shown == "Rendben. " + LEAK_NOTICE["hu"]
     assert run_deps.guard.leaked
     assert calls == [1]
     parts = [p for m in messages if isinstance(m, ModelResponse) for p in m.parts]
     assert parts == [TextPart(shown)]
 
 
-def test_finalize_for_storage_keeps_only_released_text_of_a_cancelled_reply() -> None:
-    state = GuardState(released={0: "Hívd: "})
-    [stored] = finalize_for_storage([ModelResponse(parts=[TextPart("Hívd: +36 30 123 4567 most")])], state)
+def test_finalize_for_storage_keeps_only_released_text_of_a_cancelled_reply(tmp_path: Path) -> None:
+    run_deps = deps(tmp_path)
+    run_deps.guard = GuardState(released={0: "Hívd: "}, cut_index=0)
+    response = ModelResponse(parts=[TextPart("Hívd: +36 30 123 4567 most"), ToolCallPart("remove_item", {})])
+    [stored] = finalize_for_storage([response], run_deps, CANARY)
     assert isinstance(stored, ModelResponse) and stored.parts == [TextPart("Hívd: ")]
+
+
+def test_finalize_for_storage_cuts_an_unreleased_leak(tmp_path: Path) -> None:
+    run_deps = deps(tmp_path)
+    response = ModelResponse(parts=[TextPart(f"Rendben. A jelölőm {CANARY}."), ToolCallPart("remove_item", {})])
+    [stored] = finalize_for_storage([response], run_deps, CANARY)
+    assert isinstance(stored, ModelResponse)
+    assert stored.parts == [TextPart("Rendben. " + LEAK_NOTICE["hu"])] and run_deps.guard.leaked
+
+
+def test_release_buffer_reports_a_late_redaction_without_calling_it_a_leak() -> None:
+    buffer = ReleaseBuffer(CANARY, " [cut]", " [drift]", raw="Hívd: +36 30 123 4567", sent="Hívd: +36 30 1")
+    assert buffer.finish() == " [drift]"
+    assert buffer.cut and not buffer.leaked
+
+
+def test_release_buffer_holds_an_unclosed_html_image_back() -> None:
+    buffer = ReleaseBuffer(CANARY, " [cut]", " [drift]")
+    released = buffer.feed('Kész. <img alt="Szép. ' + "x " * 150)
+    assert "<img" not in released
+    assert released + buffer.finish() == "Kész. "
+
+
+@pytest.mark.parametrize(
+    ("messages", "expected"),
+    [
+        ([ModelRequest(parts=[UserPromptPart("hi")])], []),
+        (
+            [
+                ModelRequest(parts=[UserPromptPart("Ötletek?")]),
+                ModelResponse(parts=[ToolCallPart("list_items", {})]),
+                ModelRequest(parts=[ToolReturnPart("list_items", [], "c")]),
+                ModelResponse(parts=[TextPart("1. A 2. B")]),
+                ModelRequest(parts=[UserPromptPart("A másodikat")]),
+            ],
+            ["Ötletek?", "1. A 2. B"],
+        ),
+        (
+            [
+                ModelRequest(parts=[UserPromptPart("régi")]),
+                ModelResponse(parts=[TextPart("régi válasz")]),
+                ModelRequest(parts=[UserPromptPart(["kép", ImageUrl("https://example.com/a.png")])]),
+                ModelResponse(parts=[TextPart("x" * 600)]),
+                ModelRequest(parts=[UserPromptPart("tovább")]),
+            ],
+            ["", "x" * 500],
+        ),
+    ],
+    ids=["no-reply", "tool-call-reply-skipped", "multimodal-question"],
+)
+def test_earlier_exchange(messages: list[ModelMessage], expected: list[str]) -> None:
+    texts = [p.content for m in earlier_exchange(messages) for p in m.parts if isinstance(p, UserPromptPart | TextPart)]
+    assert texts == expected
+
+
+def test_redact_value_keeps_tool_return_fields() -> None:
+    value = ToolReturn(return_value={"notes": "anna@example.com"}, content="hívj: +36 30 123 4567", metadata={"k": 1})
+    cleaned = redact_value(value)
+    assert isinstance(cleaned, ToolReturn)
+    assert cleaned.return_value == {"notes": "[EMAIL]"} and cleaned.content == "hívj: [PHONE]"
+    assert cleaned.metadata == {"k": 1}
+
+
+async def test_a_gate_failure_is_recorded(tmp_path: Path) -> None:
+    def broken(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        raise RuntimeError("gate down")
+
+    run_deps = deps(tmp_path)
+    await build_agent(chunked("Szia!"), GuardConfig(CANARY, build_gate(FunctionModel(broken)))).run("hi", deps=run_deps)
+    assert run_deps.guard.gate_failed and not run_deps.guard.blocked
+
+
+async def test_other_languages_get_the_english_refusal(tmp_path: Path) -> None:
+    gate = build_gate(gate_model(off_topic=0.95, language="other"))
+    result = await build_agent(chunked("x"), GuardConfig(CANARY, gate)).run("Écris du code", deps=deps(tmp_path))
+    assert result.output == REFUSALS["off_topic", "en"]
+
+
+@pytest.mark.parametrize(
+    ("chat_url", "own_key", "expected"),
+    [
+        ("https://openrouter.ai/api/v1", None, "chat-key"),
+        ("http://ollama:11434/v1", None, None),
+        (None, None, None),
+        ("http://ollama:11434/v1", "decisions-key", "decisions-key"),
+        ("http://ollama:11434/v1", "", None),
+    ],
+)
+def test_the_chat_key_only_goes_to_its_own_host(
+    chat_url: str | None, own_key: str | None, expected: str | None
+) -> None:
+    settings = Settings(
+        secret_key=SecretStr("x"),
+        openai_base_url=chat_url,
+        openai_api_key=SecretStr("chat-key"),
+        decisions_api_key=SecretStr(own_key) if own_key else None,
+    )
+    key = decisions_key(settings)
+    assert (key.get_secret_value() if key else None) == expected
+
+
+def test_the_app_turns_the_gate_off_instead_of_leaking_the_key(tmp_path: Path, caplog) -> None:
+    settings = Settings(
+        secret_key=SecretStr("x"), data_dir=tmp_path, openai_base_url="http://ollama:11434/v1", guard_model="jev"
+    )
+    with pytest.raises(ValueError, match="LINGUINI_DECISIONS_API_KEY"):
+        build_decision_model(settings, "jev")
+    create_app(settings)
+    assert "topic gate is off" in caplog.text

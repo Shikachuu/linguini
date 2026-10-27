@@ -45,7 +45,8 @@ class Settings(BaseSettings):
         default=HttpUrl("https://openrouter.ai/api/v1"), description="System One API base URL serving guard_model"
     )
     decisions_api_key: SecretStr | None = Field(
-        default=None, description="API key for decisions_base_url; defaults to openai_api_key"
+        default=None,
+        description="API key for decisions_base_url; defaults to openai_api_key when both URLs share a host",
     )
 
     google_client_id: str | None = None

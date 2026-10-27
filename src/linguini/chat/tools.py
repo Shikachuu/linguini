@@ -37,6 +37,8 @@ class ItemAmount(BaseModel):
     @field_validator("name")
     @classmethod
     def _one_line(cls, value: str) -> str:
+        if not value.split():
+            raise ValueError("name must not be blank")
         return " ".join(value.split())
 
 

@@ -52,8 +52,6 @@ def call(name: str, args: dict, call_id: str) -> DeltaToolCalls:
 
 
 def streamed(respond: Callable[[list[ModelMessage], AgentInfo], ModelResponse]) -> FunctionModel:
-    """A FunctionModel that also streams, as the guarded chat agent always streams."""
-
     async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str | DeltaToolCalls]:
         for index, part in enumerate(respond(messages, info).parts):
             await asyncio.sleep(0)
@@ -169,8 +167,6 @@ class Scripted:
 def gate_model(
     off_topic: float = 0.0, attack: float = 0.0, language: str = "en", *, seen: list[str] | None = None
 ) -> FunctionModel:
-    """A stand-in for the decision model behind the topic gate, answering with a fixed verdict."""
-
     def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         if seen is not None:
             seen.append(last_user_text(messages))

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
+from pydantic import SecretStr
 from pydantic_ai import Agent, ModelSettings, RunContext, UsageLimits
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.mcp import MCPToolset
@@ -44,13 +45,33 @@ def build_model(settings: Settings, model_settings: ModelSettings | None = None)
     return OpenAIChatModel(settings.model, provider=provider, profile=profile, settings=model_settings)
 
 
+def decisions_key(settings: Settings) -> SecretStr | None:
+    """The key for the decisions server: its own, or the chat key when both URLs point at the same host.
+
+    Returns:
+        The key, or None when using the chat key would send it to another host.
+    """
+    if settings.decisions_api_key is not None and settings.decisions_api_key.get_secret_value():
+        return settings.decisions_api_key
+    if settings.openai_base_url is not None and settings.openai_base_url.host == settings.decisions_base_url.host:
+        return settings.openai_api_key
+    return None
+
+
 def build_decision_model(settings: Settings, name: str) -> Model:
     """Construct a decision model served over the System One API, such as the topic gate's.
 
     Returns:
         A decision model.
+
+    Raises:
+        ValueError: when no key for the decisions server is configured.
     """
-    key = settings.decisions_api_key or settings.openai_api_key
+    key = decisions_key(settings)
+    if key is None:
+        raise ValueError(
+            f"{settings.decisions_base_url.host} differs from the chat server; set LINGUINI_DECISIONS_API_KEY"
+        )
     provider = SystemOneProvider(base_url=str(settings.decisions_base_url), api_key=key.get_secret_value())
     return SystemOneModel(name, provider=provider)
 

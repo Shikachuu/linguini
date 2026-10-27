@@ -36,12 +36,12 @@ Every case is a real, billed model call. Pass a dataset name, `--case NAME` to r
 `src/linguini/chat/guard.py` adds these checks to the chat agent as pydantic-ai capabilities, so the chat endpoint and the evals run the same code:
 
 - Before the model sees a message, `redact.py` replaces secrets, email addresses, card numbers, IBANs and phone numbers with `[SECRET]`, `[EMAIL]`, `[CARD]`, `[IBAN]` and `[PHONE]`. The database and the thread title get the redacted text too.
-- The topic gate sends the redacted message, plus the previous question and reply, to a decision model (`LINGUINI_GUARD_MODEL`, default `typesafe/jev-1.14`). It blocks the turn when the off-topic or attack probability is 0.7 or higher, and answers with a fixed refusal in Hungarian or English. A blocked turn is stored with status `blocked`, shown in the thread, and left out of later model history. When the gate errors or takes longer than 3 seconds, the message goes through, because the checks below do not depend on it.
+- The topic gate sends the redacted message, plus the previous question and reply, to a decision model (`LINGUINI_GUARD_MODEL`, default `typesafe/jev-1.14`). It blocks the turn when the off-topic or attack probability is 0.7 or higher, and answers with a fixed refusal in Hungarian or English. A blocked turn is stored with status `blocked`, shown in the thread, and left out of later model history. When the gate errors or takes longer than 3 seconds, the app logs an error and the message goes through, because the checks below do not depend on it.
 - Tool results, including Kifli's, go through the stackone prompt-injection classifier; a result with a planted instruction is replaced by a notice telling the model to warn the user. Personal data in tool results is redacted, and tool arguments that repeat the instructions are refused.
 - Replies stream through a buffer that releases text sentence by sentence, at least 200 characters behind the model, after redaction. A reply that quotes the per-deployment marker or two lines of the instructions is cut at the sentence before, and its tool calls never run. The stored reply is exactly what the browser showed.
 - The chat endpoint rejects messages over 4,000 characters and bodies over 64 KB with 413. Tool arguments are length-capped, and the web app renders no images in replies and asks before opening links outside kifli.hu.
 
-The gate needs a System One API endpoint, which OpenRouter serves. On another provider, set `LINGUINI_GUARD_MODEL=` (empty) to turn the gate off; the other checks still run.
+The gate needs a System One API endpoint, which OpenRouter serves. On another chat provider, either set `LINGUINI_DECISIONS_API_KEY` to an OpenRouter key or set `LINGUINI_GUARD_MODEL=` (empty) to turn the gate off; the other checks still run. The app never sends the chat server's key to the decisions host unless both are the same host.
 
 ### Testing Sign in with Apple locally
 
@@ -107,7 +107,7 @@ Every setting is an environment variable with the `LINGUINI_` prefix. Docker sec
 | `SESSION_HEADER` | no | Header that carries the thread id on every model call, for servers that route or cache by conversation. OpenCode Go requires `x-opencode-session`. |
 | `GUARD_MODEL` | no | Decision model that screens each message for off-topic requests and attacks. Default `typesafe/jev-1.14`; empty turns the screen off. |
 | `DECISIONS_BASE_URL` | no | System One API base URL serving `GUARD_MODEL`. Default `https://openrouter.ai/api/v1`. |
-| `DECISIONS_API_KEY` | no | Key for `DECISIONS_BASE_URL`. Defaults to `OPENAI_API_KEY`. |
+| `DECISIONS_API_KEY` | no | Key for `DECISIONS_BASE_URL`. Defaults to `OPENAI_API_KEY` only when `OPENAI_BASE_URL` is on the same host; otherwise the gate stays off and the app logs an error at startup. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | for Google login | Web client from Google Cloud Console; redirect URI `PUBLIC_URL/api/auth/google/callback`. |
 | `GOOGLE_EXTRA_AUDIENCES` | no | JSON list of iOS and Android client ids accepted on the native login endpoint. |
 | `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_SERVICES_ID` | for Apple login | Services ID with return URL `PUBLIC_URL/api/auth/apple/callback`; the key is the `.p8` contents or `file:/run/secrets/apple_key`. |

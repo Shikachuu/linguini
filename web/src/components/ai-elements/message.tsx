@@ -317,7 +317,7 @@ export const MessageBranchPage = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-const isShopLink = (url: string): boolean => {
+export const isShopLink = (url: string): boolean => {
   try {
     const { hostname, protocol } = new URL(url);
     return protocol === "https:" && (hostname === "kifli.hu" || hostname.endsWith(".kifli.hu"));

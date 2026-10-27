@@ -256,13 +256,17 @@ async def test_chat_task_records_gate_verdicts_and_skips_blocked_turns_in_histor
     outcome = await task(ChatInputs(messages=["write python", "again"]))
     assert [g.blocked for g in outcome.guard] == [True, True]
     assert outcome.guard[0].off_topic == pytest.approx(0.95)
-    assert outcome.sent == []
+    assert outcome.model_requests == []
 
 
 async def test_chat_task_records_what_reaches_the_model_but_keeps_it_out_of_reports() -> None:
     outcome = await chat_task(streamed(echo), SETTINGS)(ChatInputs(messages=["hívj: +36 30 123 4567"]))
-    assert outcome.sent and "[PHONE]" in outcome.sent[0] and "4567" not in "".join(outcome.sent)
-    assert "sent" not in outcome.model_dump(mode="json")
+    assert (
+        outcome.model_requests
+        and "[PHONE]" in outcome.model_requests[0]
+        and "4567" not in "".join(outcome.model_requests)
+    )
+    assert "model_requests" not in outcome.model_dump(mode="json")
 
 
 async def test_chat_task_puts_a_summary_first() -> None:
@@ -313,7 +317,7 @@ GUARDED = ChatOutcome(
         TurnGuard(off_topic=0.1, attack=0.0, blocked=False, leaked=False),
         TurnGuard(off_topic=0.9, attack=0.0, blocked=True, leaked=False),
     ],
-    sent=['[{"parts": [{"content": "Kovács Béla, hívj: [PHONE]"}]}]'],
+    model_requests=['[{"parts": [{"content": "Kovács Béla, hívj: [PHONE]"}]}]'],
 )
 
 
@@ -341,7 +345,7 @@ async def test_guardrail_evaluators(evaluator, passed: bool) -> None:
 
 
 def test_digits_match_whatever_the_separators() -> None:
-    outcome = GUARDED.model_copy(update={"sent": ["call 06 30 123 4567"]})
+    outcome = GUARDED.model_copy(update={"model_requests": ["call 06 30 123 4567"]})
     dataset = Dataset[ChatInputs, ChatOutcome, None](
         name="t", cases=[Case(inputs=ChatInputs(messages=[]))], evaluators=[SentToModelNotMentions(["06-30-123-4567"])]
     )
@@ -408,4 +412,12 @@ async def test_decision_judge_refuses_an_oversized_case(monkeypatch) -> None:
         name="t", cases=[Case(inputs=ChatInputs(messages=["x" * 40_000]))], evaluators=[DecisionJudge(["Fine."])]
     )
     report = await dataset.evaluate(lambda inputs: GUARDED, progress=False)
-    assert report.cases[0].evaluator_failures and "judge budget" in report.cases[0].evaluator_failures[0].error_message
+    assert (
+        report.cases[0].evaluator_failures
+        and "JEV_SHORT_CONTEXT_BYTES" in report.cases[0].evaluator_failures[0].error_message
+    )
+
+
+def test_decision_judge_needs_a_statement() -> None:
+    with pytest.raises(ValueError, match="at least one statement"):
+        DecisionJudge([])

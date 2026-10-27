@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -21,7 +22,7 @@ from linguini import observability
 from linguini.auth.oidc import JwksCache
 from linguini.auth.router import router as auth_router
 from linguini.auth.sessions import CsrfMiddleware
-from linguini.chat.agent import build_agent, build_decision_model, build_model, build_summarizer
+from linguini.chat.agent import build_agent, build_decision_model, build_model, build_summarizer, decisions_key
 from linguini.chat.guard import GuardConfig, build_gate, canary_for
 from linguini.chat.router import ThreadLocks
 from linguini.chat.router import router as chat_router
@@ -33,6 +34,8 @@ from linguini.kifli.router import router as kifli_router
 from linguini.models import OAuthState, Run, RunStatus, Session
 from linguini.recipes.router import router as recipes_router
 from linguini.web import mount_spa
+
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -115,9 +118,10 @@ def create_app(
     tracing = observability.configure(settings)
     app.state.tracer_provider = tracing[0] if tracing else None
     capabilities = [tracing[1]] if tracing else []
-    gate_model = guard_model or (build_decision_model(settings, settings.guard_model) if settings.guard_model else None)
+    gate_model = guard_model or _guard_model(settings)
     gate = build_gate(gate_model, capabilities) if gate_model else None
-    app.state.agent = build_agent(chat_model, GuardConfig(canary_for(settings), gate), capabilities)
+    app.state.canary = canary_for(settings)
+    app.state.agent = build_agent(chat_model, GuardConfig(app.state.canary, gate), capabilities)
     app.state.summarizer = build_summarizer(summary_model or _summary_model(settings, chat_model), capabilities)
     app.state.thread_locks = ThreadLocks()
     app.add_middleware(GZipMiddleware, minimum_size=1024)
@@ -143,6 +147,18 @@ def create_app(
     app.include_router(kifli_router)
     mount_spa(app, settings.static_dir)
     return app
+
+
+def _guard_model(settings: Settings) -> Model | None:
+    if not settings.guard_model:
+        return None
+    if decisions_key(settings) is None:
+        log.error(
+            "topic gate is off: %s is not the chat server, so set LINGUINI_DECISIONS_API_KEY or LINGUINI_GUARD_MODEL=",
+            settings.decisions_base_url.host,
+        )
+        return None
+    return build_decision_model(settings, settings.guard_model)
 
 
 def _summary_model(settings: Settings, default: Model) -> Model:

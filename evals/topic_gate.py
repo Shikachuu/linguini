@@ -29,7 +29,6 @@ class TopicOutcome(BaseModel):
 
 
 def topic_task(guard_model: Model) -> Callable[[TopicInputs], Awaitable[TopicOutcome]]:
-    """Run the production gate alone, as the router would call it, on one message."""
     gate = build_gate(guard_model)
 
     async def run(inputs: TopicInputs) -> TopicOutcome:
