@@ -1220,7 +1220,7 @@
           "chat"
         ],
         "summary": "Chat",
-        "description": "Send a message and stream the reply as a Vercel AI SDK data stream.\n\nOnly the newest user message from the request body is used; the conversation history\ncomes from the server.\n\nRaises:\n    HTTPException: 409 when the thread already has a run in progress.",
+        "description": "Send a message and stream the reply as a Vercel AI SDK data stream.\n\nOnly the newest user message from the request body is used; the conversation history\ncomes from the server.\n\nRaises:\n    HTTPException: 413 when the body or the message is too long, 409 when the thread already has a run in\n        progress.",
         "operationId": "chat",
         "parameters": [
           {

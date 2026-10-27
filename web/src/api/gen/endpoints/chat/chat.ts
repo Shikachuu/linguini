@@ -543,7 +543,8 @@ export const useDeleteThread = <TError = ErrorType<HTTPValidationError>,
  * comes from the server.
  *
  * Raises:
- *     HTTPException: 409 when the thread already has a run in progress.
+ *     HTTPException: 413 when the body or the message is too long, 409 when the thread already has a run in
+ *         progress.
  * @summary Chat
  */
 export const chat = async (householdId: string,
