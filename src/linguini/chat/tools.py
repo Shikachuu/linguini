@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import HTTPException
 from pydantic import BaseModel, Field, field_validator
@@ -23,7 +23,9 @@ inventory_toolset: FunctionToolset[AgentDeps] = FunctionToolset(id="inventory")
 class ItemAmount(BaseModel):
     """A named quantity, e.g. 500 g of chicken breast."""
 
-    name: str = Field(description="Item name as the household calls it, e.g. 'csirkemell' or 'rice'")
+    name: str = Field(
+        min_length=1, max_length=80, description="Item name as the household calls it, e.g. 'csirkemell' or 'rice'"
+    )
     quantity: float = Field(gt=0, description="Positive amount in `unit`")
     unit: str = Field(description="g, dkg, kg, ml, dl, l, tsp, tbsp, cup or pcs (db)")
 
@@ -32,13 +34,20 @@ class ItemAmount(BaseModel):
     def _known_unit(cls, value: str) -> str:
         return parse_unit(value).value
 
+    @field_validator("name")
+    @classmethod
+    def _one_line(cls, value: str) -> str:
+        return " ".join(value.split())
+
 
 class PurchasedItem(ItemAmount):
     """An item being added to the pantry."""
 
     purchased_at: UTCInput | None = Field(default=None, description="When it was bought; defaults to now")
     expires_at: UTCInput | None = Field(default=None, description="Best-before date if known")
-    kifli_product_id: str | None = Field(default=None, description="Kifli product id when imported from an order")
+    kifli_product_id: str | None = Field(
+        default=None, max_length=64, description="Kifli product id when imported from an order"
+    )
 
 
 def _actor(ctx: RunContext[AgentDeps], cause: EventCause = EventCause.CHAT) -> service.Actor:
@@ -77,7 +86,7 @@ async def list_items(ctx: RunContext[AgentDeps]) -> list[dict[str, Any]]:
 
 
 @inventory_toolset.tool
-async def search_items(ctx: RunContext[AgentDeps], query: str) -> list[dict[str, Any]]:
+async def search_items(ctx: RunContext[AgentDeps], query: Annotated[str, Field(max_length=80)]) -> list[dict[str, Any]]:
     """Search the inventory by name; accents and case do not matter and prefixes match.
 
     Args:
@@ -92,7 +101,9 @@ async def search_items(ctx: RunContext[AgentDeps], query: str) -> list[dict[str,
 
 @inventory_toolset.tool
 async def add_items(
-    ctx: RunContext[AgentDeps], items: list[PurchasedItem], kifli_order_id: str | None = None
+    ctx: RunContext[AgentDeps],
+    items: list[PurchasedItem],
+    kifli_order_id: Annotated[str, Field(max_length=64)] | None = None,
 ) -> dict[str, Any]:
     """Add quantities to the inventory, creating items that do not exist yet.
 
@@ -142,7 +153,10 @@ async def consume_items(ctx: RunContext[AgentDeps], items: list[ItemAmount]) -> 
 
 @inventory_toolset.tool
 async def set_item(
-    ctx: RunContext[AgentDeps], item: ItemAmount, expires_at: UTCInput | None = None, notes: str | None = None
+    ctx: RunContext[AgentDeps],
+    item: ItemAmount,
+    expires_at: UTCInput | None = None,
+    notes: Annotated[str, Field(max_length=500)] | None = None,
 ) -> dict[str, Any]:
     """Set an item's absolute quantity, optionally changing its unit, expiry, or notes.
 
@@ -163,7 +177,9 @@ async def set_item(
 
 
 @inventory_toolset.tool
-async def remove_item(ctx: RunContext[AgentDeps], name: str, user_confirmed: bool) -> str:
+async def remove_item(
+    ctx: RunContext[AgentDeps], name: Annotated[str, Field(max_length=80)], user_confirmed: bool
+) -> str:
     """Permanently delete an item and its history; this cannot be undone.
 
     Only call this after the user explicitly confirmed the deletion in this conversation.
@@ -192,7 +208,9 @@ async def remove_item(ctx: RunContext[AgentDeps], name: str, user_confirmed: boo
 
 
 @inventory_toolset.tool
-async def undo(ctx: RunContext[AgentDeps], event_id: str | None = None) -> dict[str, Any]:
+async def undo(
+    ctx: RunContext[AgentDeps], event_id: Annotated[str, Field(max_length=64)] | None = None
+) -> dict[str, Any]:
     """Undo inventory changes: one event by id, or every change made by the previous assistant turn.
 
     Without an id this works once per turn and never touches changes made in the current turn;
@@ -251,7 +269,9 @@ def _recipe_view(recipe: Recipe, *, full: bool) -> dict[str, Any]:
 
 
 @recipe_toolset.tool
-async def list_recipes(ctx: RunContext[AgentDeps], query: str | None = None) -> list[dict[str, Any]]:
+async def list_recipes(
+    ctx: RunContext[AgentDeps], query: Annotated[str, Field(max_length=80)] | None = None
+) -> list[dict[str, Any]]:
     """List the household's saved recipes, optionally filtered by title or ingredient.
 
     Args:
@@ -266,7 +286,7 @@ async def list_recipes(ctx: RunContext[AgentDeps], query: str | None = None) -> 
 
 
 @recipe_toolset.tool
-async def get_recipe(ctx: RunContext[AgentDeps], recipe_id: str) -> dict[str, Any]:
+async def get_recipe(ctx: RunContext[AgentDeps], recipe_id: Annotated[str, Field(max_length=64)]) -> dict[str, Any]:
     """Return a saved recipe with its ingredients and steps.
 
     Args:
@@ -308,7 +328,9 @@ async def save_recipe(ctx: RunContext[AgentDeps], recipe: RecipeData) -> dict[st
 
 
 @recipe_toolset.tool
-async def cook_recipe(ctx: RunContext[AgentDeps], recipe_id: str, servings: int | None = None) -> dict[str, Any]:
+async def cook_recipe(
+    ctx: RunContext[AgentDeps], recipe_id: Annotated[str, Field(max_length=64)], servings: int | None = None
+) -> dict[str, Any]:
     """Record that a saved recipe was cooked: its required ingredients are consumed from the inventory.
 
     Use this when the user says they made a dish that is saved; for unsaved dishes use consume_items.
